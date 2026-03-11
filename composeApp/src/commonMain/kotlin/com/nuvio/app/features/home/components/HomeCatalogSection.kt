@@ -10,12 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.features.home.HomeCatalogSection
+import com.nuvio.app.features.home.MetaPreview
 
 @Composable
 fun HomeCatalogRowSection(
     section: HomeCatalogSection,
     modifier: Modifier = Modifier,
     onViewAllClick: (() -> Unit)? = null,
+    onPosterClick: ((MetaPreview) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -33,7 +35,10 @@ fun HomeCatalogRowSection(
                 items = section.items,
                 key = { item -> item.id },
             ) { item ->
-                HomePosterCard(item = item)
+                HomePosterCard(
+                    item = item,
+                    onClick = onPosterClick?.let { { it(item) } },
+                )
             }
         }
     }

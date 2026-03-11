@@ -18,6 +18,7 @@ import com.nuvio.app.features.home.components.HomeEmptyStateCard
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    onPosterClick: ((MetaPreview) -> Unit)? = null,
 ) {
     LaunchedEffect(Unit) {
         AddonRepository.initialize()
@@ -92,6 +93,7 @@ fun HomeScreen(
                 ) { index ->
                     HomeCatalogRowSection(
                         section = homeUiState.sections[index],
+                        onPosterClick = onPosterClick,
                     )
                 }
             }

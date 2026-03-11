@@ -1,6 +1,7 @@
 package com.nuvio.app.features.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,9 +29,12 @@ import com.nuvio.app.features.home.PosterShape
 fun HomePosterCard(
     item: MetaPreview,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier.width(142.dp),
+        modifier = modifier
+            .width(142.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(

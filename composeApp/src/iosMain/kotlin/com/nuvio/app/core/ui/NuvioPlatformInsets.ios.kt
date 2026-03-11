@@ -4,3 +4,4 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 internal actual val nuvioPlatformExtraTopPadding: Dp = 0.dp
+internal actual val nuvioPlatformExtraBottomPadding: Dp = 0.dp
