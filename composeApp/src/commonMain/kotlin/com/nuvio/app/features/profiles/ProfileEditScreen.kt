@@ -75,10 +75,17 @@ fun ProfileEditScreen(
         }
     }
     val fallbackColorHex = currentProfile?.avatarColorHex ?: PROFILE_COLORS.first()
+    val editableProfileIndex = remember(isNew, currentProfile?.profileIndex, profileState.profiles) {
+        currentProfile?.profileIndex
+            ?: ((1..4).toSet() - profileState.profiles.map { it.profileIndex }.toSet()).minOrNull()
+            ?: 1
+    }
+    val canUsePrimarySources = editableProfileIndex != 1
 
     var name by rememberSaveable { mutableStateOf(currentProfile?.name ?: "") }
     var selectedAvatarId by rememberSaveable { mutableStateOf(currentProfile?.avatarId) }
     var usesPrimaryAddons by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryAddons ?: false) }
+    var usesPrimaryPlugins by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryPlugins ?: false) }
     var isSaving by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showPinSetup by remember { mutableStateOf(false) }
@@ -93,6 +100,12 @@ fun ProfileEditScreen(
     LaunchedEffect(isNew, avatars, selectedAvatarId) {
         if (isNew && selectedAvatarId == null && avatars.isNotEmpty()) {
             selectedAvatarId = avatars.first().id
+        }
+    }
+    LaunchedEffect(canUsePrimarySources) {
+        if (!canUsePrimarySources) {
+            usesPrimaryAddons = false
+            usesPrimaryPlugins = false
         }
     }
 
@@ -119,13 +132,16 @@ fun ProfileEditScreen(
             ProfileIdentityCard(
                 name = name,
                 isNew = isNew,
-                profileIndex = currentProfile?.profileIndex,
+                profileIndex = editableProfileIndex,
                 usesPrimaryAddons = usesPrimaryAddons,
+                usesPrimaryPlugins = usesPrimaryPlugins,
                 onNameChange = { name = it },
                 onUsesPrimaryAddonsChange = { usesPrimaryAddons = it },
+                onUsesPrimaryPluginsChange = { usesPrimaryPlugins = it },
                 selectedAvatar = selectedAvatarItem,
                 accentColor = previewAccent,
                 hasAvatarChoices = avatars.isNotEmpty(),
+                canUsePrimarySources = canUsePrimarySources,
             )
         }
 
@@ -231,6 +247,7 @@ fun ProfileEditScreen(
                                 avatarColorHex = avatarColorHex,
                                 avatarId = selectedAvatarId,
                                 usesPrimaryAddons = usesPrimaryAddons,
+                                usesPrimaryPlugins = usesPrimaryPlugins,
                             )
                         } else {
                             ProfileRepository.updateProfile(
@@ -239,6 +256,7 @@ fun ProfileEditScreen(
                                 avatarColorHex = avatarColorHex,
                                 avatarId = selectedAvatarId,
                                 usesPrimaryAddons = usesPrimaryAddons,
+                                usesPrimaryPlugins = usesPrimaryPlugins,
                             )
                         }
                         isSaving = false
@@ -325,13 +343,16 @@ fun ProfileEditScreen(
 private fun ProfileIdentityCard(
     name: String,
     isNew: Boolean,
-    profileIndex: Int?,
+    profileIndex: Int,
     usesPrimaryAddons: Boolean,
+    usesPrimaryPlugins: Boolean,
     onNameChange: (String) -> Unit,
     onUsesPrimaryAddonsChange: (Boolean) -> Unit,
+    onUsesPrimaryPluginsChange: (Boolean) -> Unit,
     selectedAvatar: AvatarCatalogItem?,
     accentColor: Color,
     hasAvatarChoices: Boolean,
+    canUsePrimarySources: Boolean,
 ) {
     NuvioSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -396,15 +417,19 @@ private fun ProfileIdentityCard(
                             if (isNew) {
                                 stringResource(Res.string.profile_new)
                             } else {
-                                profileIndex?.let { stringResource(Res.string.profile_label_number, it) }
-                                    ?: stringResource(Res.string.profile_unnamed)
+                                stringResource(Res.string.profile_label_number, profileIndex)
                             },
-                            if (usesPrimaryAddons) {
+                            if (canUsePrimarySources && usesPrimaryAddons) {
                                 stringResource(Res.string.profile_primary_addons_on)
                             } else {
-                                stringResource(Res.string.profile_primary_addons_off)
+                                null
                             },
-                        ).joinToString("  |  "),
+                            if (canUsePrimarySources && usesPrimaryPlugins) {
+                                stringResource(Res.string.profile_primary_plugins_on)
+                            } else {
+                                null
+                            },
+                        ).filterNotNull().joinToString("  |  "),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -429,12 +454,21 @@ private fun ProfileIdentityCard(
                 placeholder = stringResource(Res.string.profile_name_placeholder),
             )
 
-            ProfileOptionRow(
-                title = stringResource(Res.string.profile_use_primary_addons),
-                description = stringResource(Res.string.profile_use_primary_addons_description),
-                checked = usesPrimaryAddons,
-                onCheckedChange = onUsesPrimaryAddonsChange,
-            )
+            if (canUsePrimarySources) {
+                ProfileOptionRow(
+                    title = stringResource(Res.string.profile_use_primary_addons),
+                    description = stringResource(Res.string.profile_use_primary_addons_description),
+                    checked = usesPrimaryAddons,
+                    onCheckedChange = onUsesPrimaryAddonsChange,
+                )
+
+                ProfileOptionRow(
+                    title = stringResource(Res.string.profile_use_primary_plugins),
+                    description = stringResource(Res.string.profile_use_primary_plugins_description),
+                    checked = usesPrimaryPlugins,
+                    onCheckedChange = onUsesPrimaryPluginsChange,
+                )
+            }
         }
     }
 }

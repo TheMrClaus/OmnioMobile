@@ -7,8 +7,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.functions.functions
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,18 +33,12 @@ object AuthRepository {
         if (initialized) return
         initialized = true
 
-        val savedAnonId = AuthStorage.loadAnonymousUserId()
-        if (savedAnonId != null) {
-            _state.value = AuthState.Authenticated(
-                userId = savedAnonId,
-                email = null,
-                isAnonymous = true,
-            )
+        if (AuthStorage.loadAnonymousUserId() != null) {
+            AuthStorage.clearAnonymousUserId()
         }
 
         scope.launch {
             SupabaseProvider.client.auth.sessionStatus.collect { status ->
-                if (AuthStorage.loadAnonymousUserId() != null) return@collect
                 when (status) {
                     is SessionStatus.Authenticated -> {
                         val user = status.session.user
@@ -60,7 +52,7 @@ object AuthRepository {
                         _state.value = AuthState.Unauthenticated
                     }
                     is SessionStatus.Initializing -> {
-                        if (savedAnonId == null) _state.value = AuthState.Loading
+                        _state.value = AuthState.Loading
                     }
                     is SessionStatus.RefreshFailure -> {
                         _state.value = AuthState.Unauthenticated
@@ -68,18 +60,6 @@ object AuthRepository {
                 }
             }
         }
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
-    fun signInAnonymously() {
-        _error.value = null
-        val userId = Uuid.random().toString()
-        AuthStorage.saveAnonymousUserId(userId)
-        _state.value = AuthState.Authenticated(
-            userId = userId,
-            email = null,
-            isAnonymous = true,
-        )
     }
 
     suspend fun signUpWithEmail(email: String, password: String): Result<Unit> = runCatching {
@@ -107,11 +87,8 @@ object AuthRepository {
 
     suspend fun signOut(): Result<Unit> = runCatching {
         _error.value = null
-        val wasAnonymous = AuthStorage.loadAnonymousUserId() != null
         AuthStorage.clearAnonymousUserId()
-        if (!wasAnonymous) {
-            SupabaseProvider.client.auth.signOut()
-        }
+        SupabaseProvider.client.auth.signOut()
         _state.value = AuthState.Unauthenticated
         LocalAccountDataCleaner.wipe()
     }.onFailure { e ->

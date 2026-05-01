@@ -164,7 +164,10 @@ val generatedRuntimeConfigDir = layout.buildDirectory.dir("generated/runtime-con
 
 val generateRuntimeConfigs = tasks.register<GenerateRuntimeConfigsTask>("generateRuntimeConfigs") {
     outputDir.set(generatedRuntimeConfigDir)
-    localPropertiesFile.set(rootProject.layout.projectDirectory.file("local.properties"))
+    val rootLocalProperties = rootProject.layout.projectDirectory.file("local.properties")
+    if (rootLocalProperties.asFile.exists()) {
+        localPropertiesFile.set(rootLocalProperties)
+    }
     appVersionName.set(releaseAppVersionName)
     appVersionCode.set(releaseAppVersionCode)
 }
@@ -303,7 +306,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nuvio.app"
+        applicationId = "com.omnio.mobile"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = releaseAppVersionCode

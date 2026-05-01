@@ -53,6 +53,8 @@ private data class StoredProfilePayload(
 )
 
 object ProfileRepository {
+    private const val PRIMARY_PROFILE_INDEX = 1
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val log = Logger.withTag("ProfileRepository")
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -65,6 +67,26 @@ object ProfileRepository {
     private var loadedCacheForUserId: String? = null
 
     val activeProfileId: Int get() = activeProfileIndex
+
+    private fun sanitizeProfile(profile: NuvioProfile): NuvioProfile =
+        if (profile.profileIndex == PRIMARY_PROFILE_INDEX) {
+            profile.copy(
+                usesPrimaryAddons = false,
+                usesPrimaryPlugins = false,
+            )
+        } else {
+            profile
+        }
+
+    private fun sanitizeProfilePayload(payload: ProfilePushPayload): ProfilePushPayload =
+        if (payload.profileIndex == PRIMARY_PROFILE_INDEX) {
+            payload.copy(
+                usesPrimaryAddons = false,
+                usesPrimaryPlugins = false,
+            )
+        } else {
+            payload
+        }
 
     fun loadCachedProfiles(): Boolean {
         val stored = decodeStoredPayload() ?: return false
@@ -110,6 +132,7 @@ object ProfileRepository {
         runCatching {
             val result = SupabaseProvider.client.postgrest.rpc("sync_pull_profiles")
             val profiles = result.decodeList<NuvioProfile>()
+                .map(::sanitizeProfile)
             _state.value = _state.value.copy(
                 profiles = profiles.sortedBy { it.profileIndex },
                 isLoaded = true,
@@ -158,13 +181,14 @@ object ProfileRepository {
     }
 
     suspend fun pushProfiles(profiles: List<ProfilePushPayload>) {
+        val sanitizedProfiles = profiles.map(::sanitizeProfilePayload)
         if (AuthRepository.state.value.isAnonymous) {
-            applyPayloadsLocally(profiles)
+            applyPayloadsLocally(sanitizedProfiles)
             return
         }
         runCatching {
             val params = buildJsonObject {
-                put("p_profiles", json.encodeToJsonElement(profiles))
+                put("p_profiles", json.encodeToJsonElement(sanitizedProfiles))
             }
             SupabaseProvider.client.postgrest.rpc("sync_push_profiles", params)
             pullProfiles()
@@ -178,6 +202,7 @@ object ProfileRepository {
         avatarColorHex: String,
         avatarId: String? = null,
         usesPrimaryAddons: Boolean = false,
+        usesPrimaryPlugins: Boolean = false,
     ) {
         val existing = _state.value.profiles
         val nextIndex = ((1..4).toSet() - existing.map { it.profileIndex }.toSet()).minOrNull() ?: return
@@ -196,6 +221,7 @@ object ProfileRepository {
             name = name,
             avatarColorHex = avatarColorHex,
             usesPrimaryAddons = usesPrimaryAddons,
+            usesPrimaryPlugins = usesPrimaryPlugins,
             avatarId = avatarId,
         )
 
@@ -208,6 +234,7 @@ object ProfileRepository {
         avatarColorHex: String,
         avatarId: String? = null,
         usesPrimaryAddons: Boolean = false,
+        usesPrimaryPlugins: Boolean = false,
     ) {
         val allPayloads = _state.value.profiles.map { profile ->
             if (profile.profileIndex == profileIndex) {
@@ -216,6 +243,7 @@ object ProfileRepository {
                     name = name,
                     avatarColorHex = avatarColorHex,
                     usesPrimaryAddons = usesPrimaryAddons,
+                    usesPrimaryPlugins = usesPrimaryPlugins,
                     avatarId = avatarId ?: profile.avatarId,
                 )
             } else {
@@ -358,7 +386,7 @@ object ProfileRepository {
                 usesPrimaryAddons = p.usesPrimaryAddons,
                 usesPrimaryPlugins = p.usesPrimaryPlugins,
             )
-        }.sortedBy { it.profileIndex }
+        }.map(::sanitizeProfile).sortedBy { it.profileIndex }
         _state.value = _state.value.copy(
             profiles = profiles,
             isLoaded = true,
@@ -381,7 +409,9 @@ object ProfileRepository {
     }
 
     private fun applyStoredPayload(stored: StoredProfilePayload) {
-        val profiles = stored.profiles.sortedBy { it.profileIndex }
+        val profiles = stored.profiles
+            .map(::sanitizeProfile)
+            .sortedBy { it.profileIndex }
         activeProfileIndex = stored.activeProfileIndex
         _state.value = ProfileState(
             profiles = profiles,

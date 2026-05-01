@@ -63,17 +63,14 @@ import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.app_logo_wordmark
 import nuvio.composeapp.generated.resources.compose_auth_already_have_account
-import nuvio.composeapp.generated.resources.compose_auth_continue_without_account
 import nuvio.composeapp.generated.resources.compose_auth_create_account
 import nuvio.composeapp.generated.resources.compose_auth_dont_have_account
 import nuvio.composeapp.generated.resources.compose_auth_email
-import nuvio.composeapp.generated.resources.compose_auth_or_separator
 import nuvio.composeapp.generated.resources.compose_auth_password
 import nuvio.composeapp.generated.resources.compose_auth_sign_in
 import nuvio.composeapp.generated.resources.compose_auth_sign_in_subtitle
 import nuvio.composeapp.generated.resources.compose_auth_sign_up
 import nuvio.composeapp.generated.resources.compose_auth_sign_up_subtitle
-import nuvio.composeapp.generated.resources.compose_auth_store_locally
 import nuvio.composeapp.generated.resources.compose_auth_tagline
 import nuvio.composeapp.generated.resources.compose_auth_welcome_back
 import org.jetbrains.compose.resources.painterResource
@@ -326,63 +323,6 @@ fun AuthScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(1.dp)
-                        .background(MaterialTheme.colorScheme.outline),
-                )
-                Text(
-                    text = stringResource(Res.string.compose_auth_or_separator),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(1.dp)
-                        .background(MaterialTheme.colorScheme.outline),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    AuthRepository.signInAnonymously()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                enabled = !isLoading,
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            ) {
-                Text(
-                    text = stringResource(Res.string.compose_auth_continue_without_account),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(Res.string.compose_auth_store_locally),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }

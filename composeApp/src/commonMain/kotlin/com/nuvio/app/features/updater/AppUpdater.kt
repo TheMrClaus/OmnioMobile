@@ -53,8 +53,8 @@ import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
-private const val gitHubOwner = "NuvioMedia"
-private const val gitHubRepo = "NuvioMobile"
+private const val gitHubOwner = "TheMrClaus"
+private const val gitHubRepo = "OmnioMobile"
 private const val gitHubApiBase = "https://api.github.com"
 private const val releaseChannelBranch = "cmp-rewrite"
 
@@ -106,7 +106,7 @@ private val appUpdaterJson = Json {
 }
 
 private class NoChannelReleaseException : IllegalStateException(
-    "No cmp-rewrite release has been published yet.",
+    "No release has been published for the current update channel yet.",
 )
 
 private object VersionUtils {
@@ -153,7 +153,7 @@ private object AppUpdaterRepository {
             url = "$gitHubApiBase/repos/$gitHubOwner/$gitHubRepo/releases?per_page=20",
             headers = mapOf(
                 "Accept" to "application/vnd.github+json",
-                "User-Agent" to "NuvioMobile",
+                "User-Agent" to "OmnioMobile",
             ),
             body = "",
         )
@@ -170,7 +170,7 @@ private object AppUpdaterRepository {
             ?: error("Release has no tag or name")
 
         val asset = chooseBestApkAsset(release.assets)
-            ?: error("No APK asset found in the cmp-rewrite release")
+            ?: error("No APK asset found in the current channel release")
 
         AppUpdate(
             tag = tag,

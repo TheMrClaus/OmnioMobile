@@ -962,6 +962,7 @@
     <string name="profile_new">New profile</string>
     <string name="profile_primary_addons_off">Primary addons off</string>
     <string name="profile_primary_addons_on">Primary addons on</string>
+    <string name="profile_primary_plugins_on">Primary plugins on</string>
     <string name="profile_remove_pin_for">Remove PIN for %1$s</string>
     <string name="profile_remove_pin_lock">Remove PIN Lock</string>
     <string name="profile_saving">Saving...</string>
@@ -973,6 +974,8 @@
     <string name="profile_unnamed">Unnamed profile</string>
     <string name="profile_use_primary_addons">Use Primary Addons</string>
     <string name="profile_use_primary_addons_description">Share the main profile's addon setup instead of managing a separate list.</string>
+    <string name="profile_use_primary_plugins">Use Primary Plugins</string>
+    <string name="profile_use_primary_plugins_description">Share the main profile's plugin setup instead of managing a separate list.</string>
     <string name="profile_who_is_watching">Who&apos;s watching?</string>
     <string name="provider_downloaded">Downloaded</string>
     <string name="resume_prompt_action">Resume</string>
@@ -1009,7 +1012,7 @@
     <string name="updates_downloading_progress">Downloading %1$d%</string>
     <string name="updates_install_failed">Unable to start installation</string>
     <string name="updates_latest_version">You&apos;re using the latest version.</string>
-    <string name="updates_message_allow_installs">Enable app installs for Nuvio, then come back and continue.</string>
+    <string name="updates_message_allow_installs">Enable app installs for Omnio, then come back and continue.</string>
     <string name="updates_message_downloading">Downloading update...</string>
     <string name="updates_message_no_updates">No updates found.</string>
     <string name="updates_message_ready">A new version is ready to install.</string>
@@ -1022,7 +1025,7 @@
     <string name="addon_already_installed">That addon is already installed.</string>
     <string name="addon_invalid_url">Enter a valid addon URL</string>
     <string name="addon_load_manifest_failed">Unable to load manifest</string>
-    <string name="app_brand_name">Nuvio</string>
+    <string name="app_brand_name">Omnio</string>
     <string name="auth_account_deletion_failed">Account deletion failed</string>
     <string name="auth_sign_in_failed">Sign-in failed</string>
     <string name="auth_sign_out_failed">Sign-out failed</string>
