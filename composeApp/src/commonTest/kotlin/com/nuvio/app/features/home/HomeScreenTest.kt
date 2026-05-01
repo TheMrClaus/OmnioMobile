@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home
 
+import com.nuvio.app.features.profiles.NuvioProfile
 import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 import com.nuvio.app.features.watchprogress.WatchProgressEntry
 import kotlin.test.Test
@@ -58,6 +59,42 @@ class HomeScreenTest {
 
         assertEquals(1, result.size)
         assertEquals("S1E5 • The Wolf and the Lion", result.single().subtitle)
+    }
+
+    @Test
+    fun `build home continue watching items filters over limit kids content`() {
+        val allowed = progressEntry(
+            videoId = "movie-1",
+            title = "Allowed",
+            lastUpdatedEpochMs = 200L,
+            seasonNumber = null,
+            episodeNumber = null,
+            episodeTitle = null,
+        )
+        val blocked = progressEntry(
+            videoId = "movie-2",
+            title = "Blocked",
+            lastUpdatedEpochMs = 100L,
+            seasonNumber = null,
+            episodeNumber = null,
+            episodeTitle = null,
+        )
+
+        val result = buildHomeContinueWatchingItems(
+            visibleEntries = listOf(allowed, blocked),
+            nextUpItemsBySeries = emptyMap(),
+            liveAgeRatingsByContent = mapOf(
+                "movie-1" to "PG-13",
+                "movie-2" to "18+",
+            ),
+            activeProfile = NuvioProfile(
+                profileIndex = 2,
+                isKids = true,
+                maxAgeRating = "13+",
+            ),
+        )
+
+        assertEquals(listOf("movie-1"), result.map(ContinueWatchingItem::videoId))
     }
 
     private fun progressEntry(

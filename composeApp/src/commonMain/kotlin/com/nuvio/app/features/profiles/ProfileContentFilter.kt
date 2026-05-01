@@ -2,11 +2,28 @@ package com.nuvio.app.features.profiles
 
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.library.LibraryItem
+import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 
 object ProfileContentFilter {
-    fun filter(items: List<MetaPreview>, activeProfile: NuvioProfile?): List<MetaPreview> {
+    fun filter(items: List<MetaPreview>, activeProfile: NuvioProfile?): List<MetaPreview> =
+        filterByAgeRating(items, activeProfile) { item -> item.ageRating }
+
+    fun filterLibraryItems(items: List<LibraryItem>, activeProfile: NuvioProfile?): List<LibraryItem> =
+        filterByAgeRating(items, activeProfile) { item -> item.ageRating }
+
+    fun filterContinueWatchingItems(
+        items: List<ContinueWatchingItem>,
+        activeProfile: NuvioProfile?,
+    ): List<ContinueWatchingItem> = filterByAgeRating(items, activeProfile) { item -> item.ageRating }
+
+    private inline fun <T> filterByAgeRating(
+        items: List<T>,
+        activeProfile: NuvioProfile?,
+        ageRatingOf: (T) -> String?,
+    ): List<T> {
         val threshold = kidsAgeThreshold(activeProfile) ?: return items
-        return items.filter { item -> allows(item.ageRating, threshold) }
+        return items.filter { item -> allows(ageRatingOf(item), threshold) }
     }
 
     fun filter(meta: MetaDetails, activeProfile: NuvioProfile?): MetaDetails? {
@@ -46,7 +63,7 @@ object ProfileContentFilter {
             ?.toIntOrNull()
     }
 
-    private val ageDigits = Regex("""\\d{1,2}""")
+    private val ageDigits = Regex("""\d{1,2}""")
 
     private val symbolicAgeRatings = mapOf(
         "all" to 0,

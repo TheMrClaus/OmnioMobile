@@ -2,6 +2,7 @@ package com.nuvio.app.features.library
 
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.network.SupabaseProvider
+import com.nuvio.app.features.profiles.ProfileContentFilter
 import com.nuvio.app.features.profiles.ProfileRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktLibraryRepository
@@ -41,6 +42,7 @@ private data class LibrarySyncItem(
     val description: String? = null,
     @SerialName("release_info") val releaseInfo: String? = null,
     @SerialName("imdb_rating") val imdbRating: Float? = null,
+    @SerialName("age_rating") val ageRating: String? = null,
     val genres: List<String> = emptyList(),
     @SerialName("added_at") val addedAt: Long = 0,
 )
@@ -267,24 +269,27 @@ object LibraryRepository {
     }
 
     private fun publish() {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+
         if (TraktAuthRepository.isAuthenticated.value) {
             val traktState = TraktLibraryRepository.uiState.value
             val sections = traktState.listTabs.mapNotNull { tab ->
                 val listItems = traktState.entriesByList[tab.key].orEmpty()
-                if (listItems.isEmpty()) {
+                val filteredListItems = ProfileContentFilter.filterLibraryItems(listItems, activeProfile)
+                if (filteredListItems.isEmpty()) {
                     null
                 } else {
                     LibrarySection(
                         type = tab.key,
                         displayTitle = tab.title,
-                        items = listItems,
+                        items = filteredListItems,
                     )
                 }
             }
 
             _uiState.value = LibraryUiState(
                 sourceMode = LibrarySourceMode.TRAKT,
-                items = traktState.allItems,
+                items = ProfileContentFilter.filterLibraryItems(traktState.allItems, activeProfile),
                 sections = sections,
                 isLoaded = traktState.hasLoaded,
                 isLoading = traktState.isLoading,
@@ -293,8 +298,10 @@ object LibraryRepository {
             return
         }
 
-        val items = itemsById.values
-            .sortedByDescending { it.savedAtEpochMs }
+        val items = ProfileContentFilter.filterLibraryItems(
+            items = itemsById.values.sortedByDescending { it.savedAtEpochMs },
+            activeProfile = activeProfile,
+        )
         val sections = items
             .groupBy { it.type }
             .map { (type, typeItems) ->
@@ -347,6 +354,7 @@ private fun LibrarySyncItem.toLibraryItem(): LibraryItem = LibraryItem(
     description = description,
     releaseInfo = releaseInfo,
     imdbRating = imdbRating?.toString(),
+    ageRating = ageRating,
     genres = genres,
     savedAtEpochMs = addedAt,
 )
@@ -360,6 +368,7 @@ private fun LibraryItem.toSyncItem(): LibrarySyncItem = LibrarySyncItem(
     description = description,
     releaseInfo = releaseInfo,
     imdbRating = imdbRating?.toFloatOrNull(),
+    ageRating = ageRating,
     genres = genres,
     addedAt = savedAtEpochMs,
 )

@@ -26,6 +26,7 @@ class LibraryRepositoryTest {
             description = "desc",
             releaseInfo = "2024",
             imdbRating = "8.4",
+            ageRating = "PG-13",
             genres = listOf("Drama"),
             posterShape = PosterShape.Poster,
             savedAtEpochMs = 1L,
@@ -36,5 +37,6 @@ class LibraryRepositoryTest {
         assertEquals("anime-series", preview.type)
         assertEquals(PosterShape.Poster, preview.posterShape)
         assertEquals("banner", preview.banner)
+        assertEquals("PG-13", preview.ageRating)
     }
 }

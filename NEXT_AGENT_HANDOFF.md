@@ -33,12 +33,20 @@
   - shared catalog fetches now filter by the active profile
   - details screens now block over-limit titles and trim related rails
   - TMDB collection/person/entity browse flows now fetch/cache preview age ratings and filter against the active profile
+  - local library shelves and internal library view-all rows now filter against the active profile
+  - Trakt library lists now hydrate/store age ratings and filter against the active profile
+  - home continue-watching / next-up rows now resolve parent age ratings when metadata is available and filter against the active profile
   - profile switches now reset search state so prior results do not leak across profiles
 - Metadata parsing is a bit more tolerant now:
   - shared preview/detail parsing accepts `ageRating`, `age_rating`, or `certification`
+- Focused common tests were added for the current filtering slice:
+  - `ProfileContentFilter` now has direct coverage for library-item threshold behavior and unknown-rating pass-through
+  - `HomeScreenTest` now covers kids filtering for continue-watching rows
+  - `TraktLibraryRepositoryTest` now covers age-rating hydration requirements
 
 ## Validation
 
+- Verified with: `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.profiles.ProfileContentFilterTest' --tests 'com.nuvio.app.features.trakt.TraktLibraryRepositoryTest' --tests 'com.nuvio.app.features.library.LibraryRepositoryTest' --tests 'com.nuvio.app.features.home.HomeScreenTest'`
 - Verified with: `./gradlew :composeApp:assembleFullDebug`
 - Latest validation status before handoff: passing
 
@@ -48,22 +56,23 @@
 - Package namespaces are still `com.nuvio.app.*`; only product identity and selected behavior changed so far.
 - This is still an Android-first migration slice.
 - Kids filtering currently allows unrated/unknown titles through; no conservative block policy has been applied yet.
-- The current slice focused on browsing surfaces fed by shared catalog/TMDB metadata paths, not saved/history/progress surfaces.
+- Continue-watching filtering depends on resolving parent metadata at runtime; if metadata is unavailable, those items currently still fall through under the existing allow-unknown policy.
 
 ## Recommended Next Slice
 
-1. Finish the remaining personalized/saved browsing seams that still likely bypass kids filtering:
-  - local library shelves and section previews
-  - Trakt library surfaces
-  - home continue-watching / next-up cards
-2. Decide and implement the product policy for unknown or unrated titles:
+1. Decide and implement the product policy for unknown or unrated titles:
   - keep current allow-through behavior, or
   - switch to conservative blocking for kids profiles, or
   - make the policy explicit/configurable in one shared place
+2. Finish the remaining saved/history/progress seams that can still surface titles without resolved age metadata:
+  - resume prompt launch flow
+  - any watched/history or progress-driven rows outside the home continue-watching shelf
+  - cached/offline continue-watching fallback behavior if metadata lookup is unavailable
 3. Add focused common tests before widening scope again:
-  - `ProfileContentFilter` age-rating normalization and threshold behavior
+  - `ProfileContentFilter` age-rating normalization edge cases
   - parser coverage for `ageRating`, `age_rating`, and `certification`
   - TMDB preview age-rating plumbing for collection/person/entity paths
+  - continue-watching metadata enrichment fallback behavior
 4. After the above is stable, reassess whether the next migration slice should be:
   - parental-control hardening, or
   - iOS/profile parity work only where shared-code compilation requires it
@@ -84,7 +93,9 @@
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/profiles/ProfileSelectionScreen.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/catalog/CatalogData.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/home/HomeScreen.kt`
+- `composeApp/src/commonMain/kotlin/com/nuvio/app/features/watchprogress/WatchProgressModels.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/library/LibraryScreen.kt`
+- `composeApp/src/commonMain/kotlin/com/nuvio/app/features/library/LibraryRepository.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/trakt/TraktLibraryRepository.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/collection/TmdbCollectionSourceResolver.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/tmdb/TmdbMetadataService.kt`

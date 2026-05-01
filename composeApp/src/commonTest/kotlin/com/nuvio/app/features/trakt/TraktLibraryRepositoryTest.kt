@@ -20,6 +20,7 @@ class TraktLibraryRepositoryTest {
             description = null,
             releaseInfo = "2024",
             imdbRating = null,
+            ageRating = "PG-13",
             genres = emptyList(),
             posterShape = PosterShape.Poster,
             savedAtEpochMs = 1L,
@@ -40,6 +41,27 @@ class TraktLibraryRepositoryTest {
             description = "",
             releaseInfo = "2025",
             imdbRating = null,
+            genres = emptyList(),
+            posterShape = PosterShape.Poster,
+            savedAtEpochMs = 1L,
+        )
+
+        assertTrue(shouldHydrateTraktLibraryItem(item))
+    }
+
+    @Test
+    fun `hydration keeps filling missing age rating metadata`() {
+        val item = LibraryItem(
+            id = "tt2468246",
+            type = "movie",
+            name = "Example Movie",
+            poster = "https://image.tmdb.org/t/p/w500/poster.jpg",
+            banner = null,
+            logo = null,
+            description = null,
+            releaseInfo = "2023",
+            imdbRating = null,
+            ageRating = null,
             genres = emptyList(),
             posterShape = PosterShape.Poster,
             savedAtEpochMs = 1L,

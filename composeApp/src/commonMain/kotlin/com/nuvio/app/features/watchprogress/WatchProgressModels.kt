@@ -145,6 +145,7 @@ data class ContinueWatchingItem(
     val logo: String? = null,
     val poster: String? = null,
     val background: String? = null,
+    val ageRating: String? = null,
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
     val episodeTitle: String? = null,

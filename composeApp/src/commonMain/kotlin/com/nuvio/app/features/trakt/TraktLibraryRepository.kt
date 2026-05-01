@@ -613,6 +613,7 @@ object TraktLibraryRepository {
                     description = item.description.orIfBlank(meta.description),
                     releaseInfo = item.releaseInfo.orIfBlank(meta.releaseInfo),
                     imdbRating = item.imdbRating.orIfBlank(meta.imdbRating),
+                    ageRating = item.ageRating.orIfBlank(meta.ageRating),
                     genres = if (item.genres.isEmpty()) meta.genres else item.genres,
                 )
             }
@@ -806,6 +807,7 @@ object TraktLibraryRepository {
             description = media.overview,
             releaseInfo = media.year?.toString(),
             imdbRating = media.rating?.toString(),
+            ageRating = media.certification,
             genres = media.genres.orEmpty(),
             savedAtEpochMs = savedAt,
         )
@@ -868,7 +870,10 @@ private data class StoredTraktLibraryPayload(
 
 internal fun shouldHydrateTraktLibraryItem(item: LibraryItem): Boolean {
     val missingDisplayName = item.name.isBlank() || item.name == item.id
-    return missingDisplayName || item.poster.isNullOrBlank() || item.releaseInfo.isNullOrBlank()
+    return missingDisplayName ||
+        item.poster.isNullOrBlank() ||
+        item.releaseInfo.isNullOrBlank() ||
+        item.ageRating.isNullOrBlank()
 }
 
 @Serializable
@@ -898,6 +903,7 @@ private data class TraktMediaDto(
     val ids: TraktIdsDto? = null,
     val overview: String? = null,
     val rating: Double? = null,
+    val certification: String? = null,
     val genres: List<String>? = null,
     val images: TraktImagesDto? = null,
 )
