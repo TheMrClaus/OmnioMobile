@@ -9,6 +9,7 @@ xcuserdata
 local.properties
 .idea
 .DS_Store
+.vscode/settings.json
 captures
 .externalNativeBuild
 .cxx
@@ -26,4 +27,5 @@ scripts/build-distribution.sh
 asset
 scripts/scrape_android_compose_animation_docs.py
 tools
+CLAUDE.md
 AGENTS.md
