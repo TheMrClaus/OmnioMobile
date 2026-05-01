@@ -5,9 +5,15 @@ import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.catalog.CatalogPage
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.PosterShape
+import com.nuvio.app.features.profiles.ProfileContentFilter
+import com.nuvio.app.features.profiles.ProfileRepository
+import com.nuvio.app.features.tmdb.TmdbMetadataService
 import com.nuvio.app.features.tmdb.TmdbSettingsRepository
 import com.nuvio.app.features.tmdb.buildTmdbUrl
 import com.nuvio.app.features.tmdb.normalizeTmdbLanguage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -26,7 +32,7 @@ object TmdbCollectionSourceResolver {
         val language = normalizeTmdbLanguage(settings.language)
         val sourceType = source.tmdbType()
 
-        when (sourceType) {
+        val rawPage = when (sourceType) {
             TmdbCollectionSourceType.LIST -> resolveList(source, apiKey, language, page)
             TmdbCollectionSourceType.COLLECTION -> resolveCollection(source, apiKey, language)
             TmdbCollectionSourceType.PERSON,
@@ -35,6 +41,13 @@ object TmdbCollectionSourceResolver {
             TmdbCollectionSourceType.NETWORK,
             TmdbCollectionSourceType.DISCOVER -> resolveDiscover(source, apiKey, language, page)
         }
+
+        rawPage.copy(
+            items = ProfileContentFilter.filter(
+                items = attachAgeRatings(rawPage.items, language),
+                activeProfile = ProfileRepository.state.value.activeProfile,
+            ),
+        )
     }
 
     suspend fun importMetadata(sourceType: TmdbCollectionSourceType, id: Int): TmdbSourceImportMetadata =
@@ -338,6 +351,32 @@ object TmdbCollectionSourceResolver {
         }
     }
 
+
+    private suspend fun attachAgeRatings(
+        items: List<MetaPreview>,
+        language: String,
+    ): List<MetaPreview> = coroutineScope {
+        items.map { preview ->
+            async {
+                val tmdbId = preview.id
+                    .removePrefix("tmdb:")
+                    .substringBefore(':')
+                    .toIntOrNull()
+                    ?: return@async preview
+                val mediaType = when (preview.type.lowercase()) {
+                    "series", "tv", "show" -> "tv"
+                    else -> "movie"
+                }
+                preview.copy(
+                    ageRating = TmdbMetadataService.fetchPreviewAgeRating(
+                        tmdbId = tmdbId,
+                        mediaType = mediaType,
+                        language = language,
+                    ),
+                )
+            }
+        }.awaitAll()
+    }
     private suspend inline fun <reified T> fetch(
         endpoint: String,
         apiKey: String,

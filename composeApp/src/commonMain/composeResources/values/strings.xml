@@ -955,6 +955,12 @@
     <string name="profile_edit_edit_title">Edit Profile</string>
     <string name="profile_enter_current_pin">Enter current PIN</string>
     <string name="profile_enter_new_pin">Enter new PIN</string>
+    <string name="profile_kids_max_rating">Maximum rating</string>
+    <string name="profile_kids_max_rating_description">Choose the highest rating this kids profile is allowed to browse.</string>
+    <string name="profile_kids_blocked_message">This title is hidden by the active kids profile limit of %1$s.</string>
+    <string name="profile_kids_mode">Kids mode</string>
+    <string name="profile_kids_mode_description">Hide titles that exceed this profile&apos;s age rating limit.</string>
+    <string name="profile_kids_up_to">Kids up to %1$s</string>
     <string name="profile_label_number">Profile %1$d</string>
     <string name="profile_loading_avatars">Loading avatars...</string>
     <string name="profile_manage_profiles">Manage Profiles</string>

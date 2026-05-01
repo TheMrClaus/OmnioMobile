@@ -445,6 +445,22 @@ private fun ProfileAvatarCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+
+        if (profile.isKids) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(
+                    Res.string.profile_kids_up_to,
+                    profile.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

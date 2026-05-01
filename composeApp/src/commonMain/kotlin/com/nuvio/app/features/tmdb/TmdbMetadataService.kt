@@ -10,6 +10,8 @@ import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.details.PersonDetail
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.PosterShape
+import com.nuvio.app.features.profiles.ProfileContentFilter
+import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -36,6 +38,7 @@ object TmdbMetadataService {
     private val entityHeaderCache = mutableMapOf<String, TmdbEntityHeader>()
     private val entityRailCache = mutableMapOf<String, List<MetaPreview>>()
     private val previewArtworkCache = mutableMapOf<String, TmdbPreviewArtwork>()
+    private val previewAgeRatingCache = mutableMapOf<String, String?>()
 
     suspend fun fetchPersonDetail(
         personId: Int,
@@ -45,7 +48,7 @@ object TmdbMetadataService {
         if (!settings.enabled || !settings.hasApiKey) return@withContext null
         val language = normalizeTmdbLanguage(settings.language)
         val cacheKey = "$personId:${preferCrewCredits?.toString() ?: "auto"}:$language"
-        personCache[cacheKey]?.let { return@withContext it }
+        personCache[cacheKey]?.let { return@withContext filterPersonDetail(it) }
 
         try {
             val (person, credits) = coroutineScope {
@@ -108,7 +111,7 @@ object TmdbMetadataService {
                 tvCredits = tvCredits,
             )
             personCache[cacheKey] = detail
-            detail
+            filterPersonDetail(detail)
         } catch (e: Exception) {
             log.w(e) { "Failed to fetch person detail for $personId" }
             null
@@ -137,6 +140,11 @@ object TmdbMetadataService {
                         mediaType = "movie",
                         language = language,
                     )
+                    val ageRating = fetchPreviewAgeRating(
+                        tmdbId = credit.id,
+                        mediaType = "movie",
+                        language = language,
+                    )
                     val poster = buildImageUrl(credit.posterPath, "w500")
                         ?: buildImageUrl(credit.backdropPath, "w780")
                         ?: artwork?.backdrop
@@ -152,6 +160,7 @@ object TmdbMetadataService {
                         releaseInfo = credit.releaseDate?.take(4),
                         rawReleaseDate = credit.releaseDate,
                         popularity = credit.popularity,
+                        ageRating = ageRating,
                     )
                 }
             }
@@ -176,6 +185,11 @@ object TmdbMetadataService {
                         mediaType = "movie",
                         language = language,
                     )
+                    val ageRating = fetchPreviewAgeRating(
+                        tmdbId = credit.id,
+                        mediaType = "movie",
+                        language = language,
+                    )
                     val poster = buildImageUrl(credit.posterPath, "w500")
                         ?: buildImageUrl(credit.backdropPath, "w780")
                         ?: artwork?.backdrop
@@ -191,6 +205,7 @@ object TmdbMetadataService {
                         releaseInfo = credit.releaseDate?.take(4),
                         rawReleaseDate = credit.releaseDate,
                         popularity = credit.popularity,
+                        ageRating = ageRating,
                     )
                 }
             }
@@ -215,6 +230,11 @@ object TmdbMetadataService {
                         mediaType = "tv",
                         language = language,
                     )
+                    val ageRating = fetchPreviewAgeRating(
+                        tmdbId = credit.id,
+                        mediaType = "tv",
+                        language = language,
+                    )
                     val poster = buildImageUrl(credit.posterPath, "w500")
                         ?: buildImageUrl(credit.backdropPath, "w780")
                         ?: artwork?.backdrop
@@ -230,6 +250,7 @@ object TmdbMetadataService {
                         releaseInfo = credit.firstAirDate?.take(4),
                         rawReleaseDate = credit.firstAirDate,
                         popularity = credit.popularity,
+                        ageRating = ageRating,
                     )
                 }
             }
@@ -254,6 +275,11 @@ object TmdbMetadataService {
                         mediaType = "tv",
                         language = language,
                     )
+                    val ageRating = fetchPreviewAgeRating(
+                        tmdbId = credit.id,
+                        mediaType = "tv",
+                        language = language,
+                    )
                     val poster = buildImageUrl(credit.posterPath, "w500")
                         ?: buildImageUrl(credit.backdropPath, "w780")
                         ?: artwork?.backdrop
@@ -269,6 +295,7 @@ object TmdbMetadataService {
                         releaseInfo = credit.firstAirDate?.take(4),
                         rawReleaseDate = credit.firstAirDate,
                         popularity = credit.popularity,
+                        ageRating = ageRating,
                     )
                 }
             }
@@ -287,7 +314,7 @@ object TmdbMetadataService {
         val language = normalizeTmdbLanguage(settings.language)
         val normalizedSourceType = normalizeEntitySourceType(sourceType)
         val cacheKey = "${entityKind.routeValue}:$entityId:$normalizedSourceType:$language"
-        entityBrowseCache[cacheKey]?.let { return@withContext it }
+        entityBrowseCache[cacheKey]?.let { return@withContext filterEntityBrowseData(it) }
 
         val header = fetchEntityHeader(
             entityKind = entityKind,
@@ -307,13 +334,17 @@ object TmdbMetadataService {
                         language = language,
                         page = 1,
                     )
-                    if (pageResult.items.isEmpty()) {
+                    val filteredItems = ProfileContentFilter.filter(
+                        items = pageResult.items,
+                        activeProfile = ProfileRepository.state.value.activeProfile,
+                    )
+                    if (filteredItems.isEmpty()) {
                         null
                     } else {
                         TmdbEntityRail(
                             mediaType = mediaType,
                             railType = railType,
-                            items = pageResult.items,
+                            items = filteredItems,
                             currentPage = 1,
                             hasMore = pageResult.hasMore,
                         )
@@ -336,7 +367,7 @@ object TmdbMetadataService {
             rails = rails,
         )
         entityBrowseCache[cacheKey] = data
-        data
+        filterEntityBrowseData(data)
     }
 
     suspend fun fetchEntityRailPage(
@@ -522,7 +553,37 @@ object TmdbMetadataService {
             logo = artwork?.logo,
             description = result.overview?.takeIf { it.isNotBlank() },
             releaseInfo = releaseInfo,
+            ageRating = fetchPreviewAgeRating(
+                tmdbId = result.id,
+                mediaType = mediaType.value,
+                language = language,
+            ),
         )
+    }
+
+    internal suspend fun fetchPreviewAgeRating(
+        tmdbId: Int,
+        mediaType: String,
+        language: String,
+    ): String? = withContext(Dispatchers.Default) {
+        val normalizedLanguage = normalizeTmdbLanguage(language)
+        val cacheKey = "$tmdbId:$mediaType:$normalizedLanguage:preview_age_rating"
+        if (previewAgeRatingCache.containsKey(cacheKey)) {
+            return@withContext previewAgeRatingCache[cacheKey]
+        }
+
+        val ageRating = when (mediaType) {
+            "tv" -> fetch<TmdbTvContentRatingsResponse>(
+                endpoint = "tv/$tmdbId/content_ratings",
+            )?.results.orEmpty().selectTvAgeRating(normalizedLanguage)
+
+            else -> fetch<TmdbMovieReleaseDatesResponse>(
+                endpoint = "movie/$tmdbId/release_dates",
+            )?.results.orEmpty().selectMovieAgeRating(normalizedLanguage)
+        }
+
+        previewAgeRatingCache[cacheKey] = ageRating
+        ageRating
     }
 
     private data class TmdbPreviewArtwork(
@@ -859,14 +920,11 @@ object TmdbMetadataService {
                 )
             }
             val ageRating = async {
-                when (mediaType) {
-                    "tv" -> fetch<TmdbTvContentRatingsResponse>(
-                        endpoint = "tv/$numericId/content_ratings",
-                    )?.results.orEmpty().selectTvAgeRating(normalizedLanguage)
-                    else -> fetch<TmdbMovieReleaseDatesResponse>(
-                        endpoint = "movie/$numericId/release_dates",
-                    )?.results.orEmpty().selectMovieAgeRating(normalizedLanguage)
-                }
+                fetchPreviewAgeRating(
+                    tmdbId = numericId,
+                    mediaType = mediaType,
+                    language = normalizedLanguage,
+                )
             }
             val moreLikeThis = async {
                 if (settings.useMoreLikeThis && (mediaType == "movie" || mediaType == "tv")) {
@@ -1026,36 +1084,47 @@ object TmdbMetadataService {
             query = mapOf("language" to language),
         ) ?: return emptyList()
 
-        val items = response.results
-            .filter { it.id > 0 }
-            .mapNotNull { recommendation ->
-                val inferredType = when (recommendation.mediaType?.lowercase()) {
-                    "tv" -> "series"
-                    "movie" -> "movie"
-                    else -> if (mediaType == "tv") "series" else "movie"
-                }
-                val title = recommendation.title
-                    ?.trim()
-                    ?.takeIf(String::isNotBlank)
-                    ?: recommendation.name?.trim()?.takeIf(String::isNotBlank)
-                    ?: recommendation.originalTitle?.trim()?.takeIf(String::isNotBlank)
-                    ?: recommendation.originalName?.trim()?.takeIf(String::isNotBlank)
-                    ?: return@mapNotNull null
+        val items = coroutineScope {
+            response.results
+                .filter { it.id > 0 }
+                .map { recommendation ->
+                    async {
+                        val inferredType = when (recommendation.mediaType?.lowercase()) {
+                            "tv" -> "series"
+                            "movie" -> "movie"
+                            else -> if (mediaType == "tv") "series" else "movie"
+                        }
+                        val title = recommendation.title
+                            ?.trim()
+                            ?.takeIf(String::isNotBlank)
+                            ?: recommendation.name?.trim()?.takeIf(String::isNotBlank)
+                            ?: recommendation.originalTitle?.trim()?.takeIf(String::isNotBlank)
+                            ?: recommendation.originalName?.trim()?.takeIf(String::isNotBlank)
+                            ?: return@async null
 
-                MetaPreview(
-                    id = "tmdb:${recommendation.id}",
-                    type = inferredType,
-                    name = title,
-                    poster = buildImageUrl(recommendation.posterPath, "w500")
-                        ?: buildImageUrl(recommendation.backdropPath, "w780"),
-                    banner = buildImageUrl(recommendation.backdropPath, "w1280"),
-                    posterShape = PosterShape.Poster,
-                    description = recommendation.overview?.trim()?.takeIf(String::isNotBlank),
-                    releaseInfo = (recommendation.releaseDate ?: recommendation.firstAirDate)?.take(4),
-                    imdbRating = recommendation.voteAverage?.formatRating(),
-                )
-            }
-            .take(12)
+                        MetaPreview(
+                            id = "tmdb:${recommendation.id}",
+                            type = inferredType,
+                            name = title,
+                            poster = buildImageUrl(recommendation.posterPath, "w500")
+                                ?: buildImageUrl(recommendation.backdropPath, "w780"),
+                            banner = buildImageUrl(recommendation.backdropPath, "w1280"),
+                            posterShape = PosterShape.Poster,
+                            description = recommendation.overview?.trim()?.takeIf(String::isNotBlank),
+                            releaseInfo = (recommendation.releaseDate ?: recommendation.firstAirDate)?.take(4),
+                            imdbRating = recommendation.voteAverage?.formatRating(),
+                            ageRating = fetchPreviewAgeRating(
+                                tmdbId = recommendation.id,
+                                mediaType = if (inferredType == "series") "tv" else "movie",
+                                language = language,
+                            ),
+                        )
+                    }
+                }
+                .awaitAll()
+                .filterNotNull()
+                .take(12)
+        }
 
         moreLikeThisCache[cacheKey] = items
         return items
@@ -1073,27 +1142,57 @@ object TmdbMetadataService {
             query = mapOf("language" to language),
         ) ?: return null to emptyList()
 
-        val items = response.parts
-            .sortedBy { it.releaseDate ?: "9999" }
-            .mapNotNull { part ->
-                val title = part.title?.trim()?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-                MetaPreview(
-                    id = "tmdb:${part.id}",
-                    type = "movie",
-                    name = title,
-                    poster = buildImageUrl(part.backdropPath, "w780")
-                        ?: buildImageUrl(part.posterPath, "w500"),
-                    banner = buildImageUrl(part.backdropPath, "w1280"),
-                    posterShape = PosterShape.Landscape,
-                    description = part.overview?.trim()?.takeIf(String::isNotBlank),
-                    releaseInfo = part.releaseDate?.take(4),
-                    imdbRating = part.voteAverage?.formatRating(),
-                )
-            }
+        val items = coroutineScope {
+            response.parts
+                .sortedBy { it.releaseDate ?: "9999" }
+                .map { part ->
+                    async {
+                        val title = part.title?.trim()?.takeIf(String::isNotBlank) ?: return@async null
+                        MetaPreview(
+                            id = "tmdb:${part.id}",
+                            type = "movie",
+                            name = title,
+                            poster = buildImageUrl(part.backdropPath, "w780")
+                                ?: buildImageUrl(part.posterPath, "w500"),
+                            banner = buildImageUrl(part.backdropPath, "w1280"),
+                            posterShape = PosterShape.Landscape,
+                            description = part.overview?.trim()?.takeIf(String::isNotBlank),
+                            releaseInfo = part.releaseDate?.take(4),
+                            imdbRating = part.voteAverage?.formatRating(),
+                            ageRating = fetchPreviewAgeRating(
+                                tmdbId = part.id,
+                                mediaType = "movie",
+                                language = language,
+                            ),
+                        )
+                    }
+                }
+                .awaitAll()
+                .filterNotNull()
+        }
 
         val result = response.name?.trim()?.takeIf(String::isNotBlank) to items
         collectionCache[cacheKey] = result
         return result
+    }
+
+    private fun filterPersonDetail(detail: PersonDetail): PersonDetail {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+        return detail.copy(
+            movieCredits = ProfileContentFilter.filter(detail.movieCredits, activeProfile),
+            tvCredits = ProfileContentFilter.filter(detail.tvCredits, activeProfile),
+        )
+    }
+
+    private fun filterEntityBrowseData(data: TmdbEntityBrowseData): TmdbEntityBrowseData {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+        return data.copy(
+            rails = data.rails
+                .map { rail ->
+                    rail.copy(items = ProfileContentFilter.filter(rail.items, activeProfile))
+                }
+                .filter { rail -> rail.items.isNotEmpty() },
+        )
     }
 
     private suspend fun fetchTrailers(

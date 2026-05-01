@@ -53,6 +53,9 @@ internal object HomeCatalogParser {
                     description = meta.string("description"),
                     releaseInfo = meta.string("releaseInfo"),
                     imdbRating = meta.string("imdbRating"),
+                    ageRating = meta.string("ageRating")
+                        ?: meta.string("age_rating")
+                        ?: meta.string("certification"),
                     genres = meta.array("genres").mapNotNull { genre ->
                         genre.jsonPrimitive.contentOrNull?.takeIf { it.isNotBlank() }
                     },

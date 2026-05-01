@@ -16,6 +16,7 @@ data class MetaPreview(
     val rawReleaseDate: String? = null,
     val popularity: Double? = null,
     val imdbRating: String? = null,
+    val ageRating: String? = null,
     val genres: List<String> = emptyList(),
 )
 

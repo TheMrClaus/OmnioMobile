@@ -39,7 +39,9 @@ internal object MetaDetailsParser {
             lastAirDate = meta.string("lastAirDate"),
             status = meta.string("status"),
             imdbRating = meta.string("imdbRating"),
-            ageRating = meta.string("ageRating"),
+            ageRating = meta.string("ageRating")
+                ?: meta.string("age_rating")
+                ?: meta.string("certification"),
             runtime = meta.string("runtime"),
             genres = meta.stringList("genres"),
             director = meta.directors(links),

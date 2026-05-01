@@ -17,6 +17,7 @@ import com.nuvio.app.features.mdblist.MdbListSettingsRepository
 import com.nuvio.app.features.notifications.EpisodeReleaseNotificationsRepository
 import com.nuvio.app.features.player.PlayerSettingsRepository
 import com.nuvio.app.features.plugins.PluginRepository
+import com.nuvio.app.features.search.SearchRepository
 import com.nuvio.app.features.search.SearchHistoryRepository
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
@@ -68,25 +69,39 @@ object ProfileRepository {
 
     val activeProfileId: Int get() = activeProfileIndex
 
-    private fun sanitizeProfile(profile: NuvioProfile): NuvioProfile =
-        if (profile.profileIndex == PRIMARY_PROFILE_INDEX) {
-            profile.copy(
-                usesPrimaryAddons = false,
-                usesPrimaryPlugins = false,
-            )
-        } else {
-            profile
-        }
+    private fun sanitizeProfile(profile: NuvioProfile): NuvioProfile {
+        val normalizedMaxAgeRating = normalizeKidsMaxAgeRating(
+            isKids = profile.isKids,
+            maxAgeRating = profile.maxAgeRating,
+        )
 
-    private fun sanitizeProfilePayload(payload: ProfilePushPayload): ProfilePushPayload =
-        if (payload.profileIndex == PRIMARY_PROFILE_INDEX) {
-            payload.copy(
+        return if (profile.profileIndex == PRIMARY_PROFILE_INDEX) {
+            profile.copy(
+                maxAgeRating = normalizedMaxAgeRating,
                 usesPrimaryAddons = false,
                 usesPrimaryPlugins = false,
             )
         } else {
-            payload
+            profile.copy(maxAgeRating = normalizedMaxAgeRating)
         }
+    }
+
+    private fun sanitizeProfilePayload(payload: ProfilePushPayload): ProfilePushPayload {
+        val normalizedMaxAgeRating = normalizeKidsMaxAgeRating(
+            isKids = payload.isKids,
+            maxAgeRating = payload.maxAgeRating,
+        )
+
+        return if (payload.profileIndex == PRIMARY_PROFILE_INDEX) {
+            payload.copy(
+                maxAgeRating = normalizedMaxAgeRating,
+                usesPrimaryAddons = false,
+                usesPrimaryPlugins = false,
+            )
+        } else {
+            payload.copy(maxAgeRating = normalizedMaxAgeRating)
+        }
+    }
 
     fun loadCachedProfiles(): Boolean {
         val stored = decodeStoredPayload() ?: return false
@@ -175,6 +190,7 @@ object ProfileRepository {
         TmdbSettingsRepository.onProfileChanged()
         MdbListSettingsRepository.onProfileChanged()
         TraktAuthRepository.onProfileChanged()
+        SearchRepository.reset()
         SearchHistoryRepository.onProfileChanged()
         CollectionRepository.onProfileChanged()
         DownloadsRepository.onProfileChanged()
@@ -201,6 +217,8 @@ object ProfileRepository {
         name: String,
         avatarColorHex: String,
         avatarId: String? = null,
+        isKids: Boolean = false,
+        maxAgeRating: String? = null,
         usesPrimaryAddons: Boolean = false,
         usesPrimaryPlugins: Boolean = false,
     ) {
@@ -212,6 +230,8 @@ object ProfileRepository {
                 profileIndex = profile.profileIndex,
                 name = profile.name,
                 avatarColorHex = profile.avatarColorHex,
+                isKids = profile.isKids,
+                maxAgeRating = profile.maxAgeRating,
                 usesPrimaryAddons = profile.usesPrimaryAddons,
                 usesPrimaryPlugins = profile.usesPrimaryPlugins,
                 avatarId = profile.avatarId,
@@ -220,6 +240,8 @@ object ProfileRepository {
             profileIndex = nextIndex,
             name = name,
             avatarColorHex = avatarColorHex,
+            isKids = isKids,
+            maxAgeRating = maxAgeRating,
             usesPrimaryAddons = usesPrimaryAddons,
             usesPrimaryPlugins = usesPrimaryPlugins,
             avatarId = avatarId,
@@ -233,6 +255,8 @@ object ProfileRepository {
         name: String,
         avatarColorHex: String,
         avatarId: String? = null,
+        isKids: Boolean = false,
+        maxAgeRating: String? = null,
         usesPrimaryAddons: Boolean = false,
         usesPrimaryPlugins: Boolean = false,
     ) {
@@ -242,6 +266,8 @@ object ProfileRepository {
                     profileIndex = profileIndex,
                     name = name,
                     avatarColorHex = avatarColorHex,
+                    isKids = isKids,
+                    maxAgeRating = maxAgeRating,
                     usesPrimaryAddons = usesPrimaryAddons,
                     usesPrimaryPlugins = usesPrimaryPlugins,
                     avatarId = avatarId ?: profile.avatarId,
@@ -251,6 +277,8 @@ object ProfileRepository {
                     profileIndex = profile.profileIndex,
                     name = profile.name,
                     avatarColorHex = profile.avatarColorHex,
+                    isKids = profile.isKids,
+                    maxAgeRating = profile.maxAgeRating,
                     usesPrimaryAddons = profile.usesPrimaryAddons,
                     usesPrimaryPlugins = profile.usesPrimaryPlugins,
                     avatarId = profile.avatarId,
@@ -383,6 +411,8 @@ object ProfileRepository {
                 name = p.name,
                 avatarColorHex = p.avatarColorHex,
                 avatarId = p.avatarId,
+                isKids = p.isKids,
+                maxAgeRating = p.maxAgeRating,
                 usesPrimaryAddons = p.usesPrimaryAddons,
                 usesPrimaryPlugins = p.usesPrimaryPlugins,
             )

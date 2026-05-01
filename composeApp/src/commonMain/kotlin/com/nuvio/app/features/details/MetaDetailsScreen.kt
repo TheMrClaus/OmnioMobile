@@ -80,6 +80,10 @@ import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.library.LibraryRepository
 import com.nuvio.app.features.library.toLibraryItem
 import com.nuvio.app.features.player.PlayerSettingsRepository
+import com.nuvio.app.features.profiles.DEFAULT_KIDS_MAX_AGE_RATING
+import com.nuvio.app.features.profiles.ProfileContentFilter
+import com.nuvio.app.features.profiles.ProfileRepository
+import com.nuvio.app.features.profiles.effectiveMaxAgeRating
 import com.nuvio.app.features.streams.StreamAutoPlayPolicy
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktCommentReview
@@ -120,8 +124,19 @@ fun MetaDetailsScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by MetaDetailsRepository.uiState.collectAsStateWithLifecycle()
-    val displayedMeta = uiState.meta?.takeIf { it.type == type && it.id == id }
+    val profileState by ProfileRepository.state.collectAsStateWithLifecycle()
+    val activeProfile = profileState.activeProfile
+    val sourceMeta = uiState.meta?.takeIf { it.type == type && it.id == id }
         ?: MetaDetailsRepository.peek(type, id)
+    val displayedMeta = remember(sourceMeta, activeProfile) {
+        sourceMeta?.let { meta ->
+            ProfileContentFilter.filter(
+                meta = meta,
+                activeProfile = activeProfile,
+            )
+        }
+    }
+    val isBlockedByProfile = sourceMeta != null && displayedMeta == null
     val metaScreenSettingsUiState by remember {
         MetaScreenSettingsRepository.ensureLoaded()
         MetaScreenSettingsRepository.uiState
@@ -174,7 +189,7 @@ fun MetaDetailsScreen(
         displayedMeta.type.lowercase().let { it == "movie" || it == "series" || it == "show" || it == "tv" }
 
     LaunchedEffect(displayedMeta?.id, shouldShowComments) {
-        if (!shouldShowComments || displayedMeta == null) {
+        if (!shouldShowComments) {
             comments = emptyList()
             commentsCurrentPage = 0
             commentsPageCount = 0
@@ -194,14 +209,14 @@ fun MetaDetailsScreen(
         isCommentsLoading = false
     }
 
-    LaunchedEffect(type, id, displayedMeta, uiState.isLoading, autoLoadAttempted) {
-        if (!autoLoadAttempted && displayedMeta == null && !uiState.isLoading) {
+    LaunchedEffect(type, id, sourceMeta, uiState.isLoading, autoLoadAttempted) {
+        if (!autoLoadAttempted && sourceMeta == null && !uiState.isLoading) {
             autoLoadAttempted = true
             MetaDetailsRepository.load(type, id)
         }
     }
 
-    LaunchedEffect(networkStatusUiState.condition, displayedMeta, uiState.isLoading, type, id) {
+    LaunchedEffect(networkStatusUiState.condition, sourceMeta, uiState.isLoading, type, id) {
         when (networkStatusUiState.condition) {
             NetworkCondition.NoInternet,
             NetworkCondition.ServersUnreachable,
@@ -212,7 +227,7 @@ fun MetaDetailsScreen(
             NetworkCondition.Online -> {
                 if (!observedOfflineState) return@LaunchedEffect
                 observedOfflineState = false
-                if (displayedMeta == null && !uiState.isLoading) {
+                if (sourceMeta == null && !uiState.isLoading) {
                     MetaDetailsRepository.load(type, id)
                 }
             }
@@ -234,6 +249,30 @@ fun MetaDetailsScreen(
                     modifier = Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.primary,
                 )
+            }
+
+            isBlockedByProfile -> {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.details_failed_to_load),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = stringResource(
+                            Res.string.profile_kids_blocked_message,
+                            activeProfile?.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             displayedMeta == null && uiState.errorMessage != null -> {

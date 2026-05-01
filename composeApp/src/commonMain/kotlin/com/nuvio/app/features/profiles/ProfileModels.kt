@@ -12,6 +12,8 @@ data class NuvioProfile(
     val name: String = "",
     @SerialName("avatar_color_hex") val avatarColorHex: String = "#1E88E5",
     @SerialName("avatar_id") val avatarId: String? = null,
+    @SerialName("is_kids") val isKids: Boolean = false,
+    @SerialName("max_age_rating") val maxAgeRating: String? = null,
     @SerialName("uses_primary_addons") val usesPrimaryAddons: Boolean = false,
     @SerialName("uses_primary_plugins") val usesPrimaryPlugins: Boolean = false,
     @SerialName("pin_enabled") val pinEnabled: Boolean = false,
@@ -25,10 +27,25 @@ data class ProfilePushPayload(
     @SerialName("profile_index") val profileIndex: Int,
     val name: String,
     @SerialName("avatar_color_hex") val avatarColorHex: String,
+    @SerialName("is_kids") val isKids: Boolean = false,
+    @SerialName("max_age_rating") val maxAgeRating: String? = null,
     @SerialName("uses_primary_addons") val usesPrimaryAddons: Boolean = false,
     @SerialName("uses_primary_plugins") val usesPrimaryPlugins: Boolean = false,
     @SerialName("avatar_id") val avatarId: String? = null,
 )
+
+const val DEFAULT_KIDS_MAX_AGE_RATING = "13+"
+
+val KIDS_MAX_AGE_RATING_OPTIONS = listOf("7+", "10+", "13+", "16+", "18+")
+
+fun normalizeKidsMaxAgeRating(isKids: Boolean, maxAgeRating: String?): String? {
+    if (!isKids) return null
+    val cleaned = maxAgeRating?.trim().orEmpty()
+    return cleaned.ifBlank { DEFAULT_KIDS_MAX_AGE_RATING }
+}
+
+fun NuvioProfile.effectiveMaxAgeRating(): String? =
+    normalizeKidsMaxAgeRating(isKids = isKids, maxAgeRating = maxAgeRating)
 
 @Serializable
 data class PinVerifyResult(

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -84,6 +85,10 @@ fun ProfileEditScreen(
 
     var name by rememberSaveable { mutableStateOf(currentProfile?.name ?: "") }
     var selectedAvatarId by rememberSaveable { mutableStateOf(currentProfile?.avatarId) }
+    var isKids by rememberSaveable { mutableStateOf(currentProfile?.isKids ?: false) }
+    var maxAgeRating by rememberSaveable {
+        mutableStateOf(currentProfile?.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING)
+    }
     var usesPrimaryAddons by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryAddons ?: false) }
     var usesPrimaryPlugins by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryPlugins ?: false) }
     var isSaving by remember { mutableStateOf(false) }
@@ -106,6 +111,11 @@ fun ProfileEditScreen(
         if (!canUsePrimarySources) {
             usesPrimaryAddons = false
             usesPrimaryPlugins = false
+        }
+    }
+    LaunchedEffect(isKids) {
+        if (isKids && maxAgeRating.isBlank()) {
+            maxAgeRating = DEFAULT_KIDS_MAX_AGE_RATING
         }
     }
 
@@ -133,9 +143,13 @@ fun ProfileEditScreen(
                 name = name,
                 isNew = isNew,
                 profileIndex = editableProfileIndex,
+                isKids = isKids,
+                maxAgeRating = maxAgeRating,
                 usesPrimaryAddons = usesPrimaryAddons,
                 usesPrimaryPlugins = usesPrimaryPlugins,
                 onNameChange = { name = it },
+                onIsKidsChange = { isKids = it },
+                onMaxAgeRatingChange = { maxAgeRating = it },
                 onUsesPrimaryAddonsChange = { usesPrimaryAddons = it },
                 onUsesPrimaryPluginsChange = { usesPrimaryPlugins = it },
                 selectedAvatar = selectedAvatarItem,
@@ -246,6 +260,8 @@ fun ProfileEditScreen(
                                 name = name,
                                 avatarColorHex = avatarColorHex,
                                 avatarId = selectedAvatarId,
+                                isKids = isKids,
+                                maxAgeRating = maxAgeRating,
                                 usesPrimaryAddons = usesPrimaryAddons,
                                 usesPrimaryPlugins = usesPrimaryPlugins,
                             )
@@ -255,6 +271,8 @@ fun ProfileEditScreen(
                                 name = name,
                                 avatarColorHex = avatarColorHex,
                                 avatarId = selectedAvatarId,
+                                isKids = isKids,
+                                maxAgeRating = maxAgeRating,
                                 usesPrimaryAddons = usesPrimaryAddons,
                                 usesPrimaryPlugins = usesPrimaryPlugins,
                             )
@@ -344,9 +362,13 @@ private fun ProfileIdentityCard(
     name: String,
     isNew: Boolean,
     profileIndex: Int,
+    isKids: Boolean,
+    maxAgeRating: String,
     usesPrimaryAddons: Boolean,
     usesPrimaryPlugins: Boolean,
     onNameChange: (String) -> Unit,
+    onIsKidsChange: (Boolean) -> Unit,
+    onMaxAgeRatingChange: (String) -> Unit,
     onUsesPrimaryAddonsChange: (Boolean) -> Unit,
     onUsesPrimaryPluginsChange: (Boolean) -> Unit,
     selectedAvatar: AvatarCatalogItem?,
@@ -419,6 +441,11 @@ private fun ProfileIdentityCard(
                             } else {
                                 stringResource(Res.string.profile_label_number, profileIndex)
                             },
+                            if (isKids) {
+                                stringResource(Res.string.profile_kids_up_to, maxAgeRating)
+                            } else {
+                                null
+                            },
                             if (canUsePrimarySources && usesPrimaryAddons) {
                                 stringResource(Res.string.profile_primary_addons_on)
                             } else {
@@ -453,6 +480,41 @@ private fun ProfileIdentityCard(
                 onValueChange = onNameChange,
                 placeholder = stringResource(Res.string.profile_name_placeholder),
             )
+
+            ProfileOptionRow(
+                title = stringResource(Res.string.profile_kids_mode),
+                description = stringResource(Res.string.profile_kids_mode_description),
+                checked = isKids,
+                onCheckedChange = onIsKidsChange,
+            )
+
+            if (isKids) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = stringResource(Res.string.profile_kids_max_rating),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = stringResource(Res.string.profile_kids_max_rating_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        KIDS_MAX_AGE_RATING_OPTIONS.forEach { option ->
+                            FilterChip(
+                                selected = maxAgeRating == option,
+                                onClick = { onMaxAgeRatingChange(option) },
+                                label = { Text(option) },
+                            )
+                        }
+                    }
+                }
+            }
 
             if (canUsePrimarySources) {
                 ProfileOptionRow(
