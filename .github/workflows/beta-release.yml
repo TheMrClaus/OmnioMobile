@@ -1,0 +1,194 @@
+name: Beta Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: "Choose whether to preview, save as draft, or publish immediately"
+        required: true
+        default: dry_run
+        type: choice
+        options:
+          - dry_run
+          - draft
+          - publish
+      manual_release:
+        description: "Use manual tag/title without changing Version.xcconfig"
+        required: true
+        default: false
+        type: boolean
+      version:
+        description: "Target MARKETING_VERSION for auto mode, for example 0.1.1-beta.20260502-1"
+        required: false
+        type: string
+      version_code:
+        description: "Optional CURRENT_PROJECT_VERSION override for auto mode. Defaults to current versionCode + 1."
+        required: false
+        type: string
+      release_tag:
+        description: "Optional release tag override in auto mode, required in manual mode. Published tags must still include the main channel marker."
+        required: false
+        type: string
+      release_title:
+        description: "Optional release title override in auto mode, required in manual mode"
+        required: false
+        type: string
+      custom_release_notes:
+        description: "Optional full Markdown release notes. When set, it replaces generated notes entirely."
+        required: false
+        type: string
+      extra_notes:
+        description: "Optional extra bullet lines, one per line"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  beta-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bootstrap local.properties from secret
+        if: ${{ inputs.release_mode != 'dry_run' }}
+        env:
+          LOCAL_PROPERTIES_BASE64: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: |
+          if [ -z "$LOCAL_PROPERTIES_BASE64" ]; then
+            echo "Missing required repository secret LOCAL_PROPERTIES_BASE64" >&2
+            exit 1
+          fi
+          printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
+
+      - name: Prepare mobile signing config
+        if: ${{ inputs.release_mode != 'dry_run' }}
+        env:
+          OMNIO_PHONE_RELEASE_KEYSTORE_BASE64: ${{ secrets.OMNIO_PHONE_RELEASE_KEYSTORE_BASE64 }}
+          OMNIO_PHONE_RELEASE_KEY_ALIAS: ${{ secrets.OMNIO_PHONE_RELEASE_KEY_ALIAS }}
+          OMNIO_PHONE_RELEASE_KEY_PASSWORD: ${{ secrets.OMNIO_PHONE_RELEASE_KEY_PASSWORD }}
+          OMNIO_PHONE_RELEASE_STORE_PASSWORD: ${{ secrets.OMNIO_PHONE_RELEASE_STORE_PASSWORD }}
+        run: |
+          if [ -z "$OMNIO_PHONE_RELEASE_KEYSTORE_BASE64" ] || [ -z "$OMNIO_PHONE_RELEASE_KEY_ALIAS" ] || [ -z "$OMNIO_PHONE_RELEASE_KEY_PASSWORD" ] || [ -z "$OMNIO_PHONE_RELEASE_STORE_PASSWORD" ]; then
+            echo "Missing one or more required mobile signing secrets" >&2
+            exit 1
+          fi
+
+          printf '%s' "$OMNIO_PHONE_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/omniomobile.jks"
+          {
+            echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/omniomobile.jks"
+            echo "NUVIO_RELEASE_KEY_ALIAS=$OMNIO_PHONE_RELEASE_KEY_ALIAS"
+            echo "NUVIO_RELEASE_KEY_PASSWORD=$OMNIO_PHONE_RELEASE_KEY_PASSWORD"
+            echo "NUVIO_RELEASE_STORE_PASSWORD=$OMNIO_PHONE_RELEASE_STORE_PASSWORD"
+          } >> local.properties
+
+      - name: Preview beta release
+        if: ${{ inputs.release_mode == 'dry_run' }}
+        id: preview
+        run: |
+          args=(python3 scripts/release_beta.py --dry-run)
+
+          if [ "${{ inputs.manual_release }}" = "true" ]; then
+            notes_key="${{ inputs.release_tag }}"
+            args+=(--manual-release --release-tag "${{ inputs.release_tag }}" --release-title "${{ inputs.release_title }}")
+          else
+            notes_key="${{ inputs.version }}"
+            args+=("${{ inputs.version }}")
+            if [ -n "${{ inputs.version_code }}" ]; then
+              args+=(--version-code "${{ inputs.version_code }}")
+            fi
+            if [ -n "${{ inputs.release_tag }}" ]; then
+              args+=(--release-tag "${{ inputs.release_tag }}")
+            fi
+            if [ -n "${{ inputs.release_title }}" ]; then
+              args+=(--release-title "${{ inputs.release_title }}")
+            fi
+          fi
+
+          if [ -n "${{ inputs.custom_release_notes }}" ]; then
+            printf '%s' "${{ inputs.custom_release_notes }}" > "$RUNNER_TEMP/custom-release-notes.md"
+            args+=(--custom-notes-file "$RUNNER_TEMP/custom-release-notes.md")
+          fi
+          if [ -n "${{ inputs.extra_notes }}" ]; then
+            args+=(--extra-notes "${{ inputs.extra_notes }}")
+          fi
+
+          "${args[@]}"
+          echo "notes_key=$notes_key" >> "$GITHUB_OUTPUT"
+          echo "notes_path=build/release/release-notes-${notes_key}.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload preview notes
+        if: ${{ inputs.release_mode == 'dry_run' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta-release-preview-${{ steps.preview.outputs.notes_key }}
+          path: ${{ steps.preview.outputs.notes_path }}
+          if-no-files-found: error
+
+      - name: Create beta release
+        if: ${{ inputs.release_mode != 'dry_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(python3 scripts/release_beta.py)
+
+          case "${{ inputs.release_mode }}" in
+            draft) args+=(--draft) ;;
+            publish) args+=(--publish) ;;
+          esac
+
+          if [ "${{ inputs.manual_release }}" = "true" ]; then
+            args+=(--manual-release --release-tag "${{ inputs.release_tag }}" --release-title "${{ inputs.release_title }}")
+          else
+            args+=("${{ inputs.version }}")
+            if [ -n "${{ inputs.version_code }}" ]; then
+              args+=(--version-code "${{ inputs.version_code }}")
+            fi
+            if [ -n "${{ inputs.release_tag }}" ]; then
+              args+=(--release-tag "${{ inputs.release_tag }}")
+            fi
+            if [ -n "${{ inputs.release_title }}" ]; then
+              args+=(--release-title "${{ inputs.release_title }}")
+            fi
+          fi
+
+          if [ -n "${{ inputs.custom_release_notes }}" ]; then
+            printf '%s' "${{ inputs.custom_release_notes }}" > "$RUNNER_TEMP/custom-release-notes.md"
+            args+=(--custom-notes-file "$RUNNER_TEMP/custom-release-notes.md")
+          fi
+          if [ -n "${{ inputs.extra_notes }}" ]; then
+            args+=(--extra-notes "${{ inputs.extra_notes }}")
+          fi
+
+          "${args[@]}"
