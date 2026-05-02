@@ -62,6 +62,30 @@ Useful commands:
 
 Versioning is driven from `iosApp/Configuration/Version.xcconfig`, which is used as the shared source of truth for both iOS and Android builds.
 
+### Beta Releases
+
+OmnioMobile beta releases are produced by the `Beta Release` GitHub Actions workflow in `.github/workflows/beta-release.yml`.
+
+The workflow supports three modes:
+
+- `dry_run` generates preview release notes without editing tracked files, building APKs, or publishing anything.
+- `draft` builds the signed `fullRelease` APK, bumps `iosApp/Configuration/Version.xcconfig` in auto mode, and creates a draft GitHub release.
+- `publish` builds the signed `fullRelease` APK, bumps `iosApp/Configuration/Version.xcconfig` in auto mode, and creates a normal GitHub release.
+
+If you override `release_tag`, keep the `main` channel marker in the tag so the in-app updater can still discover the release.
+
+Required repository secrets:
+
+- `LOCAL_PROPERTIES_BASE64`
+- `OMNIO_PHONE_RELEASE_KEYSTORE_BASE64`
+- `OMNIO_PHONE_RELEASE_KEY_ALIAS`
+- `OMNIO_PHONE_RELEASE_KEY_PASSWORD`
+- `OMNIO_PHONE_RELEASE_STORE_PASSWORD`
+
+`LOCAL_PROPERTIES_BASE64` is decoded into the CI `local.properties` file. The phone signing secrets are then appended into that same file as `NUVIO_RELEASE_STORE_FILE`, `NUVIO_RELEASE_KEY_ALIAS`, `NUVIO_RELEASE_KEY_PASSWORD`, and `NUVIO_RELEASE_STORE_PASSWORD` so the existing Gradle signing configuration can build the signed Android release APK without additional Gradle changes.
+
+The beta workflow currently publishes normal GitHub releases, not GitHub prereleases, so the in-app updater can discover them on the `main` channel.
+
 ## Legal & DMCA
 
 Omnio Mobile functions solely as a client-side interface for browsing metadata and playing media provided by user-installed extensions and/or user-provided sources. It is intended for content the user owns or is otherwise authorized to access.
