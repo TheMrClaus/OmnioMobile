@@ -56,7 +56,11 @@ import org.jetbrains.compose.resources.stringResource
 private const val gitHubOwner = "TheMrClaus"
 private const val gitHubRepo = "OmnioMobile"
 private const val gitHubApiBase = "https://api.github.com"
-private const val releaseChannelBranch = "cmp-rewrite"
+private const val releaseChannelBranch = "main"
+private val releaseChannelPattern = Regex(
+    pattern = "(^|[^A-Za-z0-9])${Regex.escape(releaseChannelBranch)}([^A-Za-z0-9]|$)",
+    option = RegexOption.IGNORE_CASE,
+)
 
 data class AppUpdate(
     val tag: String,
@@ -146,6 +150,21 @@ private object VersionUtils {
     }
 }
 
+internal object AppUpdateChannelMatcher {
+    @Suppress("UNUSED_PARAMETER")
+    fun matches(targetCommitish: String?, tagName: String?, releaseName: String?): Boolean {
+        if (targetCommitish?.trim()?.equals(releaseChannelBranch, ignoreCase = true) == true) {
+            return true
+        }
+
+        if (tagName != null && releaseChannelPattern.containsMatchIn(tagName)) {
+            return true
+        }
+
+        return false
+    }
+}
+
 private object AppUpdaterRepository {
     suspend fun getLatestChannelUpdate(): Result<AppUpdate> = runCatching {
         val response = httpRequestRaw(
@@ -184,14 +203,7 @@ private object AppUpdaterRepository {
     }
 
     private fun GitHubReleaseDto.matchesRequestedChannel(): Boolean {
-        val channel = releaseChannelBranch
-        if (targetCommitish?.trim()?.equals(channel, ignoreCase = true) == true) {
-            return true
-        }
-
-        return listOf(tagName, name)
-            .filterNotNull()
-            .any { value -> value.contains(channel, ignoreCase = true) }
+        return AppUpdateChannelMatcher.matches(targetCommitish, tagName, name)
     }
 
     private fun chooseBestApkAsset(assets: List<GitHubAssetDto>): GitHubAssetDto? {
