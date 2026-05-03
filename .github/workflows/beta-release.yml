@@ -92,6 +92,21 @@ jobs:
           fi
           printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
 
+      - name: Append Trakt credentials to local.properties
+        if: ${{ inputs.release_mode != 'dry_run' }}
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets['TRAKT_CLIENT_ID'] }}
+          TRAKT_CLIENT_SECRET: ${{ secrets['TRAKT_CLIENT_SECRET'] }}
+        run: |
+          {
+            if [[ -n "$TRAKT_CLIENT_ID" ]]; then
+              echo "TRAKT_CLIENT_ID=$TRAKT_CLIENT_ID"
+            fi
+            if [[ -n "$TRAKT_CLIENT_SECRET" ]]; then
+              echo "TRAKT_CLIENT_SECRET=$TRAKT_CLIENT_SECRET"
+            fi
+          } >> local.properties
+
       - name: Prepare mobile signing config
         if: ${{ inputs.release_mode != 'dry_run' }}
         env:
