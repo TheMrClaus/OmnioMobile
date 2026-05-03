@@ -17,8 +17,6 @@ import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
-internal fun normalizeAuthEmail(email: String): String = email.trim()
-
 object AuthRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val log = Logger.withTag("AuthRepository")
@@ -67,7 +65,7 @@ object AuthRepository {
     suspend fun signUpWithEmail(email: String, password: String): Result<Unit> = runCatching {
         _error.value = null
         SupabaseProvider.client.auth.signUpWith(Email) {
-            this.email = normalizeAuthEmail(email)
+            this.email = email
             this.password = password
         }
         Unit
@@ -79,7 +77,7 @@ object AuthRepository {
     suspend fun signInWithEmail(email: String, password: String): Result<Unit> = runCatching {
         _error.value = null
         SupabaseProvider.client.auth.signInWith(Email) {
-            this.email = normalizeAuthEmail(email)
+            this.email = email
             this.password = password
         }
     }.onFailure { e ->

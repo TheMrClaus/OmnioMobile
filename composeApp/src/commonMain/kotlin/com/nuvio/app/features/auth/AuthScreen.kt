@@ -211,8 +211,8 @@ fun AuthScreen(
                             if (email.isNotBlank() && password.isNotBlank() && !isLoading) {
                                 isLoading = true
                                 scope.launch {
-                                    if (isSignUp) AuthRepository.signUpWithEmail(email, password)
-                                    else AuthRepository.signInWithEmail(email, password)
+                                    if (isSignUp) AuthRepository.signUpWithEmail(email.trim(), password)
+                                    else AuthRepository.signInWithEmail(email.trim(), password)
                                     isLoading = false
                                 }
                             }
@@ -264,8 +264,8 @@ fun AuthScreen(
                     onClick = {
                         isLoading = true
                         scope.launch {
-                            if (isSignUp) AuthRepository.signUpWithEmail(email, password)
-                            else AuthRepository.signInWithEmail(email, password)
+                            if (isSignUp) AuthRepository.signUpWithEmail(email.trim(), password)
+                            else AuthRepository.signInWithEmail(email.trim(), password)
                             isLoading = false
                         }
                     },
