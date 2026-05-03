@@ -27,7 +27,7 @@
     <string name="addons_badge_unavailable">Unavailable</string>
     <string name="addons_configure">Configure addon</string>
     <string name="addons_delete">Delete addon</string>
-    <string name="addons_empty_subtitle">Add a manifest URL to start loading catalogs, metadata, streams or subtitles into Nuvio.</string>
+    <string name="addons_empty_subtitle">Add a manifest URL to start loading catalogs, metadata, streams or subtitles into Omnio.</string>
     <string name="addons_empty_title">No addons installed yet.</string>
     <string name="addons_error_enter_url">Enter an addon URL.</string>
     <string name="addons_input_placeholder">Addon URL</string>
@@ -138,7 +138,7 @@
     <string name="collections_editor_tmdb_list_helper">Example: https://www.themoviedb.org/list/8504994 or 8504994.</string>
     <string name="collections_editor_tmdb_person_helper">Example: https://www.themoviedb.org/person/31-tom-hanks or 31.</string>
     <string name="collections_editor_tmdb_display_title">Display title</string>
-    <string name="collections_editor_tmdb_title_helper">Shown as the row/tab name. If blank, Nuvio creates one from the source.</string>
+    <string name="collections_editor_tmdb_title_helper">Shown as the row/tab name. If blank, Omnio creates one from the source.</string>
     <string name="collections_editor_tmdb_title_placeholder">Marvel Movies, Netflix Originals, Pixar</string>
     <string name="collections_editor_tmdb_person_title_placeholder">Tom Hanks Movies, Favorite Actors</string>
     <string name="collections_editor_tmdb_director_title_placeholder">Christopher Nolan Movies, Favorite Directors</string>
@@ -549,10 +549,10 @@
     <string name="settings_meta_tab_layout_description">Group sections into tabs like the TV app. Assign up to 3 sections per tab group.</string>
     <string name="settings_meta_trailers">Trailers</string>
     <string name="settings_meta_trailers_description">Trailer rail and playback shortcuts.</string>
-    <string name="settings_notifications_disabled_in_app">Notifications are currently disabled in Nuvio.</string>
+    <string name="settings_notifications_disabled_in_app">Notifications are currently disabled in Omnio.</string>
     <string name="settings_notifications_episode_release_alerts">Episode release alerts</string>
     <string name="settings_notifications_episode_release_alerts_description">Schedule local notifications when a new episode for a saved show becomes available.</string>
-    <string name="settings_notifications_permission_disabled">System notifications are disabled for Nuvio. Enable them to receive alerts and test notifications.</string>
+    <string name="settings_notifications_permission_disabled">System notifications are disabled for Omnio. Enable them to receive alerts and test notifications.</string>
     <string name="settings_notifications_scheduled_count">%1$d release alerts are currently scheduled on this device.</string>
     <string name="settings_notifications_section_alerts">ALERTS</string>
     <string name="settings_notifications_section_test">TEST</string>
@@ -562,7 +562,7 @@
     <string name="settings_notifications_test_requires_saved_show">Save a show to your library first to test notifications.</string>
     <string name="settings_notifications_test_title">Test notification</string>
     <string name="community_section_title">Community</string>
-    <string name="community_section_description">See the people building and supporting Nuvio across Mobile, TV, and Web.</string>
+    <string name="community_section_description">See the people building and supporting Omnio across Mobile, TV, and Web.</string>
     <string name="community_supporters_not_configured">Supporters API is not configured. Add DONATIONS_BASE_URL to local.properties.</string>
     <string name="community_tab_contributors">Contributors</string>
     <string name="community_tab_supporters">Supporters</string>
@@ -879,7 +879,7 @@
     <string name="details_series_missing_numbers">This addon returned videos for the series, but none included season or episode numbers.</string>
     <string name="details_series_no_metadata">This addon did not provide episode metadata for this series.</string>
     <string name="details_series_unpublished">Episodes have not been published by this addon yet.</string>
-    <string name="details_servers_unreachable">Your device is online, but Nuvio could not reach required servers.</string>
+    <string name="details_servers_unreachable">Your device is online, but Omnio could not reach required servers.</string>
     <string name="details_show_less">Show Less</string>
     <string name="details_show_more">Show More ▾</string>
     <string name="details_writer">Writer</string>
