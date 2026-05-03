@@ -740,7 +740,7 @@
     <string name="settings_trakt_features">FUNCIONALIDADES</string>
     <string name="settings_trakt_finish_sign_in">Conclui o início de sessão do Trakt no teu navegador</string>
     <string name="settings_trakt_intro_description">Monitoriza o que vês, guarda na lista de interesse ou listas personalizadas e mantém a biblioteca sincronizada.</string>
-    <string name="settings_trakt_missing_credentials">Faltam credenciais do Trakt em local.properties.</string>
+    <string name="settings_trakt_missing_credentials">O Trakt não está disponível nesta compilação de momento.</string>
     <string name="settings_trakt_open_login">Abrir Login do Trakt</string>
     <string name="settings_trakt_save_actions_description">As tuas ações de \"Guardar\" podem agora visar a lista de interesse e listas pessoais do Trakt.</string>
     <string name="settings_trakt_sign_in_description">Inicia sessão com o Trakt para ativar gravação baseada em listas e modo de biblioteca Trakt.</string>
