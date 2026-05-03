@@ -97,6 +97,7 @@ jobs:
         env:
           TRAKT_CLIENT_ID: ${{ secrets['TRAKT_CLIENT_ID'] }}
           TRAKT_CLIENT_SECRET: ${{ secrets['TRAKT_CLIENT_SECRET'] }}
+          TRAKT_REDIRECT_URI: ${{ secrets['TRAKT_REDIRECT_URI'] }}
         run: |
           {
             if [[ -n "$TRAKT_CLIENT_ID" ]]; then
@@ -104,6 +105,9 @@ jobs:
             fi
             if [[ -n "$TRAKT_CLIENT_SECRET" ]]; then
               echo "TRAKT_CLIENT_SECRET=$TRAKT_CLIENT_SECRET"
+            fi
+            if [[ -n "$TRAKT_REDIRECT_URI" ]]; then
+              echo "TRAKT_REDIRECT_URI=$TRAKT_REDIRECT_URI"
             fi
           } >> local.properties
 
