@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
-const val INTERNAL_LIBRARY_MANIFEST_URL = "nuvio://library"
+const val INTERNAL_LIBRARY_MANIFEST_URL = "omnio://library"
 
 object CatalogRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
