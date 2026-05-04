@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nuvio.app.core.ui.NuvioSectionLabel
+import com.nuvio.app.core.ui.NuvioSurfaceCard
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaExternalRating
 import com.nuvio.app.features.details.formatRuntimeForDisplay
@@ -70,11 +72,8 @@ fun DetailMetaInfo(
     meta: MetaDetails,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .animateContentSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    NuvioSurfaceCard(
+        modifier = modifier.animateContentSize(),
     ) {
         val releaseLine = formatMetaReleaseLineForDetails(meta)
         val runtimeText = formatRuntimeForDisplay(meta.runtime)
@@ -84,8 +83,50 @@ fun DetailMetaInfo(
             runtimeText != null ||
             ageBadge != null ||
             (meta.imdbRating != null && !hasMdbImdbRating)
-        if (hasMetaRow) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            NuvioSectionLabel(text = stringResource(Res.string.meta_section_overview_title))
+
+            if (!meta.description.isNullOrBlank()) {
+                var expanded by remember { mutableStateOf(false) }
+                var canExpand by remember(meta.description) { mutableStateOf(false) }
+                Column(
+                    modifier = Modifier.animateContentSize(),
+                ) {
+                    Text(
+                        text = meta.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = if (expanded) Int.MAX_VALUE else 4,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 24.sp,
+                        onTextLayout = { result ->
+                            if (!expanded) {
+                                canExpand = result.hasVisualOverflow
+                            }
+                        },
+                    )
+                    if (canExpand) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (expanded) {
+                                stringResource(Res.string.details_show_less)
+                            } else {
+                                stringResource(Res.string.details_show_more)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clickable { expanded = !expanded },
+                        )
+                    }
+                }
+            }
+
+            if (hasMetaRow) {
             Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -137,64 +178,30 @@ fun DetailMetaInfo(
                     }
                 }
             }
-        }
+            }
 
-        AnimatedVisibility(
-            visible = meta.externalRatings.isNotEmpty(),
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
-            DetailRatingsRow(
-                ratings = meta.externalRatings,
-            )
-        }
-
-        if (meta.director.isNotEmpty()) {
-            MetaLabelValueRow(
-                label = stringResource(Res.string.details_director),
-                value = meta.director.joinToString(", "),
-            )
-        }
-
-        if (meta.writer.isNotEmpty()) {
-            MetaLabelValueRow(
-                label = stringResource(Res.string.details_writer),
-                value = meta.writer.joinToString(", "),
-            )
-        }
-
-        if (!meta.description.isNullOrBlank()) {
-            var expanded by remember { mutableStateOf(false) }
-            var canExpand by remember(meta.description) { mutableStateOf(false) }
-            Column(
-                modifier = Modifier.animateContentSize(),
+            AnimatedVisibility(
+                visible = meta.externalRatings.isNotEmpty(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
             ) {
-                Text(
-                    text = meta.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = if (expanded) Int.MAX_VALUE else 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 22.sp,
-                    onTextLayout = { result ->
-                        if (!expanded) {
-                            canExpand = result.hasVisualOverflow
-                        }
-                    },
+                DetailRatingsRow(
+                    ratings = meta.externalRatings,
                 )
-                if (canExpand) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (expanded) {
-                            stringResource(Res.string.details_show_less)
-                        } else {
-                            stringResource(Res.string.details_show_more)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clickable { expanded = !expanded },
-                    )
-                }
+            }
+
+            if (meta.director.isNotEmpty()) {
+                MetaLabelValueRow(
+                    label = stringResource(Res.string.details_director),
+                    value = meta.director.joinToString(", "),
+                )
+            }
+
+            if (meta.writer.isNotEmpty()) {
+                MetaLabelValueRow(
+                    label = stringResource(Res.string.details_writer),
+                    value = meta.writer.joinToString(", "),
+                )
             }
         }
     }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -59,6 +60,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.auth.AuthRepository
 import com.nuvio.app.core.auth.AuthState
+import com.nuvio.app.core.ui.NuvioSecondaryButton
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
+import com.nuvio.app.core.ui.omnioBackdropWashBrush
+import com.nuvio.app.core.ui.omnioHairlineColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.*
@@ -109,12 +114,17 @@ fun ProfileSelectionScreen(
                     colors = listOf(
                         MaterialTheme.colorScheme.background,
                         MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     ),
                 ),
             )
             .padding(top = statusBarTop),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(omnioBackdropWashBrush()),
+        )
         val isTabletLayout = maxWidth >= 768.dp
 
         Column(
@@ -127,27 +137,53 @@ fun ProfileSelectionScreen(
                         Modifier.verticalScroll(rememberScrollState())
                     },
                 )
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = OmnioSurfaceTokens.pagePadding),
             verticalArrangement = if (isTabletLayout) Arrangement.Center else Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(if (isTabletLayout) 0.dp else 60.dp))
+            Spacer(modifier = Modifier.height(if (isTabletLayout) 0.dp else 40.dp))
 
             Text(
-                text = stringResource(Res.string.profile_who_is_watching),
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 30.sp,
-                    letterSpacing = (-0.5).sp,
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
+                text = stringResource(Res.string.app_brand_name),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp,
                 modifier = Modifier.graphicsLayer {
                     alpha = titleAlpha.value
                     translationY = titleOffset.value
                 },
             )
 
-            Spacer(modifier = Modifier.height(if (isTabletLayout) 28.dp else 48.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(Res.string.profile_who_is_watching),
+                style = MaterialTheme.typography.displayLarge.copy(letterSpacing = (-1).sp),
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.graphicsLayer {
+                    alpha = titleAlpha.value
+                    translationY = titleOffset.value
+                },
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = if (isEditMode) {
+                    stringResource(Res.string.profile_manage_profiles)
+                } else {
+                    stringResource(Res.string.compose_profile_add_profile)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 280.dp),
+            )
+
+            Spacer(modifier = Modifier.height(if (isTabletLayout) 28.dp else 36.dp))
 
             val profiles = profileState.profiles
             val items = profiles.size + if (profiles.size < 4) 1 else 0
@@ -194,7 +230,9 @@ fun ProfileSelectionScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 360.dp),
                 ) {
                     var index = 0
                     while (index < items) {
@@ -245,30 +283,12 @@ fun ProfileSelectionScreen(
             Box(
                 modifier = Modifier
                     .graphicsLayer { alpha = manageAlpha.value }
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        if (isEditMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else Color.Transparent,
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = if (isEditMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(24.dp),
-                    )
-                    .clickable { isEditMode = !isEditMode }
-                    .padding(horizontal = 24.dp, vertical = 10.dp),
+                    .widthIn(max = 260.dp),
             ) {
-                Text(
-                    text = if (isEditMode) {
-                        stringResource(Res.string.action_done)
-                    } else {
-                        stringResource(Res.string.profile_manage_profiles)
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (isEditMode) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold,
+                NuvioSecondaryButton(
+                    text = if (isEditMode) stringResource(Res.string.action_done) else stringResource(Res.string.profile_manage_profiles),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { isEditMode = !isEditMode },
                 )
             }
 
@@ -331,22 +351,24 @@ private fun ProfileAvatarCard(
                 translationY = animOffset.value
             }
             .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             )
-            .padding(8.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
     ) {
         Box(
-            modifier = Modifier.size(110.dp),
+            modifier = Modifier.size(118.dp),
             contentAlignment = Alignment.Center,
         ) {
             if (avatarItem != null) {
                 val bgColor = avatarItem.bgColor?.let { parseHexColor(it) } ?: avatarColor
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(118.dp)
                         .clip(CircleShape)
                         .background(bgColor.copy(alpha = 0.2f)),
                 )
@@ -354,7 +376,7 @@ private fun ProfileAvatarCard(
 
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(106.dp)
                     .clip(CircleShape)
                     .background(
                         if (avatarItem != null) {
@@ -418,7 +440,7 @@ private fun ProfileAvatarCard(
                         .align(Alignment.BottomEnd)
                         .size(30.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.surface)
                         .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -432,13 +454,13 @@ private fun ProfileAvatarCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = profile.name.ifBlank {
                 stringResource(Res.string.profile_label_number, profile.profileIndex)
             },
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -453,7 +475,7 @@ private fun ProfileAvatarCard(
                     Res.string.profile_kids_up_to,
                     profile.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING,
                 ),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
@@ -495,25 +517,27 @@ private fun AddProfileCard(
                 translationY = animOffset.value
             }
             .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             )
-            .padding(8.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
     ) {
         Box(
-            modifier = Modifier.size(110.dp),
+            modifier = Modifier.size(118.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(106.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                     .border(
                         2.dp,
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        omnioHairlineColor(),
                         CircleShape,
                     ),
                 contentAlignment = Alignment.Center,
@@ -527,12 +551,12 @@ private fun AddProfileCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = stringResource(Res.string.compose_profile_add_profile),
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )

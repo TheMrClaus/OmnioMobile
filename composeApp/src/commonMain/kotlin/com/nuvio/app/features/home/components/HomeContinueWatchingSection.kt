@@ -40,6 +40,8 @@ import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.localizedContinueWatchingSubtitle
 import com.nuvio.app.core.ui.NuvioProgressBar
 import com.nuvio.app.core.ui.NuvioShelfSection
+import com.nuvio.app.core.ui.omnioCardOverlayBrush
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.core.ui.posterCardClickable
 import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 import com.nuvio.app.features.watchprogress.ContinueWatchingSectionStyle
@@ -281,10 +283,10 @@ private fun ContinueWatchingWideCard(
             .width(layout.wideCardWidth)
             .height(layout.wideCardHeight)
             .clip(RoundedCornerShape(layout.cardRadius))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
             .border(
                 width = 1.5.dp,
-                color = Color.White.copy(alpha = 0.15f),
+                color = omnioHairlineColor(),
                 shape = RoundedCornerShape(layout.cardRadius),
             )
             .combinedClickable(
@@ -399,7 +401,7 @@ private fun ContinueWatchingPosterCard(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(
                     width = 1.5.dp,
-                    color = Color.White.copy(alpha = 0.15f),
+                    color = omnioHairlineColor(),
                     shape = RoundedCornerShape(layout.cardRadius),
                 )
                 .posterCardClickable(onClick = onClick, onLongClick = onLongClick),
@@ -411,6 +413,11 @@ private fun ContinueWatchingPosterCard(
                     contentDescription = item.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(omnioCardOverlayBrush()),
                 )
             }
             if (item.progressFraction <= 0f && item.seasonNumber != null && item.episodeNumber != null) {
@@ -502,6 +509,11 @@ private fun ArtworkPanel(
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(omnioCardOverlayBrush()),
             )
         }
     }

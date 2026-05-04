@@ -57,6 +57,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
+import com.nuvio.app.core.ui.omnioCardOverlayBrush
+import com.nuvio.app.core.ui.omnioGlassSurfaceColor
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.streams.StreamItem
 import com.nuvio.app.features.streams.StreamsUiState
@@ -114,8 +118,8 @@ fun PlayerEpisodesPanel(
                         .fillMaxWidth(0.92f)
                         .heightIn(max = 620.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(colorScheme.surface)
-                        .border(1.dp, colorScheme.outlineVariant.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                        .background(omnioGlassSurfaceColor())
+                        .border(1.dp, omnioHairlineColor(), RoundedCornerShape(24.dp))
                         .clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() },
@@ -320,14 +324,12 @@ private fun EpisodeRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isCurrent) colorScheme.primaryContainer.copy(alpha = 0.55f) else Color.Transparent,
+                if (isCurrent) colorScheme.primary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.07f),
             )
-            .then(
-                if (isCurrent) {
-                    Modifier.border(1.dp, colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                },
+            .border(
+                width = 1.dp,
+                color = if (isCurrent) colorScheme.primary.copy(alpha = 0.45f) else omnioHairlineColor(),
+                shape = RoundedCornerShape(12.dp),
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -336,15 +338,24 @@ private fun EpisodeRow(
     ) {
         // Thumbnail
         if (episode.thumbnail != null) {
-            AsyncImage(
-                model = episode.thumbnail,
-                contentDescription = null,
-                modifier = Modifier
-                    .width(80.dp)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop,
-            )
+            Box {
+                AsyncImage(
+                    model = episode.thumbnail,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(omnioCardOverlayBrush()),
+                )
+            }
         }
 
         Column(modifier = Modifier.weight(1f)) {
@@ -376,13 +387,13 @@ private fun EpisodeRow(
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(colorScheme.primaryContainer)
+                            .clip(OmnioSurfaceTokens.chipShape)
+                            .background(colorScheme.primary.copy(alpha = 0.18f))
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
                         Text(
                             text = stringResource(Res.string.compose_player_playing),
-                            color = colorScheme.onPrimaryContainer,
+                            color = colorScheme.onBackground,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -488,10 +499,10 @@ private fun EpisodeStreamsSubView(
         }
 
         // Addon filter chips
-        val addonNames = remember(streamsUiState.groups) {
-            streamsUiState.groups.map { it.addonName }.distinct()
+        val filterOptions = remember(streamsUiState.groups) {
+            playerPanelFilterOptions(streamsUiState.groups)
         }
-        if (addonNames.size > 1) {
+        if (filterOptions.size > 1) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -505,14 +516,13 @@ private fun EpisodeStreamsSubView(
                     isSelected = streamsUiState.selectedFilter == null,
                     onClick = { onFilterSelected(null) },
                 )
-                addonNames.forEach { addon ->
-                    val group = streamsUiState.groups.firstOrNull { it.addonName == addon }
+                filterOptions.forEach { option ->
                     AddonFilterChip(
-                        label = addon,
-                        isSelected = streamsUiState.selectedFilter == group?.addonId,
-                        isLoading = group?.isLoading == true,
-                        hasError = group?.error != null,
-                        onClick = { onFilterSelected(group?.addonId) },
+                        label = option.addonName,
+                        isSelected = streamsUiState.selectedFilter == option.addonId,
+                        isLoading = option.isLoading,
+                        hasError = option.hasError,
+                        onClick = { onFilterSelected(option.addonId) },
                     )
                 }
             }
@@ -582,11 +592,13 @@ private fun EpisodeSourceStreamRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 68.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {

@@ -1,6 +1,7 @@
 package com.nuvio.app.features.details.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,11 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,6 +36,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,8 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.NuvioBackButton
+import com.nuvio.app.core.ui.omnioGlassSurfaceColor
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.features.details.MetaDetails
-import com.nuvio.app.isIos
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -56,11 +62,7 @@ fun DetailFloatingHeader(
     val safeAreaTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val headerTopPadding = (safeAreaTop - 6.dp).coerceAtLeast(safeAreaTop * 0.8f)
     val interactive = progress > 0.05f
-    val surfaceColor = if (isIos) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 1.0f)
-    } else {
-        MaterialTheme.colorScheme.background
-    }
+    val surfaceColor = omnioGlassSurfaceColor()
     var logoLoadError by remember(meta.id, meta.logo) {
         mutableStateOf(false)
     }
@@ -80,8 +82,14 @@ fun DetailFloatingHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
                 .clipToBounds()
-                .background(surfaceColor),
+                .background(surfaceColor)
+                .border(
+                    width = 1.dp,
+                    color = omnioHairlineColor(),
+                    shape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp),
+                ),
         ) {
             Row(
                 modifier = Modifier
@@ -96,7 +104,7 @@ fun DetailFloatingHeader(
                     NuvioBackButton(
                         onClick = onBack,
                         modifier = Modifier.size(40.dp),
-                        containerColor = Color.Transparent,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
                         contentColor = MaterialTheme.colorScheme.onBackground,
                         buttonSize = 40.dp,
                         iconSize = 24.dp,
@@ -141,15 +149,13 @@ fun DetailFloatingHeader(
                 )
             }
 
-            if (isIos) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(0.5.dp)
-                        .background(Color.White.copy(alpha = 0.15f)),
-                )
-            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(omnioHairlineColor()),
+            )
         }
     }
 }
@@ -160,20 +166,26 @@ private fun DetailFloatingHeaderAction(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    Box(
+    Surface(
         modifier = Modifier
             .size(40.dp)
             .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
     ) {
-        Icon(
-            imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-            contentDescription = if (isSaved) {
-                stringResource(Res.string.hero_remove_from_library)
-            } else {
-                stringResource(Res.string.hero_add_to_library)
-            },
-            tint = MaterialTheme.colorScheme.onBackground,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().height(40.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                contentDescription = if (isSaved) {
+                    stringResource(Res.string.hero_remove_from_library)
+                } else {
+                    stringResource(Res.string.hero_add_to_library)
+                },
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
     }
 }

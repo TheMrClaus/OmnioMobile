@@ -40,19 +40,43 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
+import com.nuvio.app.core.ui.omnioGlassSurfaceColor
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.core.i18n.localizedByteUnit
+import com.nuvio.app.features.streams.AddonStreamGroup
 import com.nuvio.app.features.streams.StreamItem
 import com.nuvio.app.features.streams.StreamsUiState
 import kotlin.math.round
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+
+internal data class PlayerPanelFilterOption(
+    val addonId: String,
+    val addonName: String,
+    val isLoading: Boolean,
+    val hasError: Boolean,
+)
+
+internal fun playerPanelFilterOptions(groups: List<AddonStreamGroup>): List<PlayerPanelFilterOption> =
+    groups
+        .groupBy { it.addonId }
+        .values
+        .map { matchingGroups ->
+            val firstGroup = matchingGroups.first()
+            PlayerPanelFilterOption(
+                addonId = firstGroup.addonId,
+                addonName = firstGroup.addonName,
+                isLoading = matchingGroups.any { it.isLoading },
+                hasError = matchingGroups.any { it.error != null },
+            )
+        }
 
 @Composable
 fun PlayerSourcesPanel(
@@ -95,8 +119,8 @@ fun PlayerSourcesPanel(
                         .fillMaxWidth(0.92f)
                         .heightIn(max = 600.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(colorScheme.surface)
-                        .border(1.dp, colorScheme.outlineVariant.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                        .background(omnioGlassSurfaceColor())
+                        .border(1.dp, omnioHairlineColor(), RoundedCornerShape(24.dp))
                         .clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() },
@@ -132,10 +156,10 @@ fun PlayerSourcesPanel(
                         }
 
                         // Addon filter chips
-                        val addonNames = remember(streamsUiState.groups) {
-                            streamsUiState.groups.map { it.addonName }.distinct()
+                        val filterOptions = remember(streamsUiState.groups) {
+                            playerPanelFilterOptions(streamsUiState.groups)
                         }
-                        if (addonNames.size > 1) {
+                        if (filterOptions.size > 1) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -149,14 +173,13 @@ fun PlayerSourcesPanel(
                                     isSelected = streamsUiState.selectedFilter == null,
                                     onClick = { onFilterSelected(null) },
                                 )
-                                addonNames.forEach { addon ->
-                                    val group = streamsUiState.groups.firstOrNull { it.addonName == addon }
+                                filterOptions.forEach { option ->
                                     AddonFilterChip(
-                                        label = addon,
-                                        isSelected = streamsUiState.selectedFilter == group?.addonId,
-                                        isLoading = group?.isLoading == true,
-                                        hasError = group?.error != null,
-                                        onClick = { onFilterSelected(group?.addonId) },
+                                        label = option.addonName,
+                                        isSelected = streamsUiState.selectedFilter == option.addonId,
+                                        isLoading = option.isLoading,
+                                        hasError = option.hasError,
+                                        onClick = { onFilterSelected(option.addonId) },
                                     )
                                 }
                             }
@@ -239,22 +262,14 @@ private fun SourceStreamRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 68.dp)
-            .shadow(
-                elevation = 2.dp,
-                shape = cardShape,
-                ambientColor = Color.Black.copy(alpha = 0.04f),
-                spotColor = Color.Black.copy(alpha = 0.04f),
-            )
             .clip(cardShape)
             .background(
-                if (isCurrent) colorScheme.primaryContainer.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f),
+                if (isCurrent) colorScheme.primary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.07f),
             )
-            .then(
-                if (isCurrent) {
-                    Modifier.border(1.dp, colorScheme.primary.copy(alpha = 0.45f), cardShape)
-                } else {
-                    Modifier
-                },
+            .border(
+                width = 1.dp,
+                color = if (isCurrent) colorScheme.primary.copy(alpha = 0.45f) else omnioHairlineColor(),
+                shape = cardShape,
             )
             .clickable(onClick = onClick)
             .padding(14.dp),
@@ -280,13 +295,13 @@ private fun SourceStreamRow(
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(colorScheme.primaryContainer)
+                            .clip(OmnioSurfaceTokens.chipShape)
+                            .background(colorScheme.primary.copy(alpha = 0.18f))
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
                         Text(
                             text = stringResource(Res.string.compose_player_playing),
-                            color = colorScheme.onPrimaryContainer,
+                            color = colorScheme.onBackground,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -341,7 +356,8 @@ private fun PlayerStreamFileSizeBadge(stream: StreamItem) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0A0C0C))
+            .background(Color.Black.copy(alpha = 0.42f))
+            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(12.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
@@ -371,15 +387,15 @@ internal fun AddonFilterChip(
             .clip(RoundedCornerShape(20.dp))
             .background(
                 when {
-                    isSelected -> colorScheme.primaryContainer
-                    else -> colorScheme.surfaceVariant.copy(alpha = 0.92f)
+                    isSelected -> colorScheme.primary.copy(alpha = 0.18f)
+                    else -> omnioGlassSurfaceColor()
                 },
             )
             .then(
                 if (isSelected) {
                     Modifier.border(1.dp, colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
                 } else {
-                    Modifier.border(1.dp, colorScheme.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                    Modifier.border(1.dp, omnioHairlineColor(), RoundedCornerShape(20.dp))
                 },
             )
             .clickable(onClick = onClick)
@@ -400,7 +416,7 @@ internal fun AddonFilterChip(
                 text = label,
                 color = when {
                     hasError -> colorScheme.error
-                    isSelected -> colorScheme.onPrimaryContainer
+                    isSelected -> colorScheme.onBackground
                     else -> colorScheme.onSurfaceVariant
                 },
                 fontSize = 12.sp,
@@ -421,8 +437,8 @@ internal fun PanelChipButton(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(colorScheme.surfaceVariant.copy(alpha = 0.9f))
-            .border(1.dp, colorScheme.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+            .background(omnioGlassSurfaceColor())
+            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
