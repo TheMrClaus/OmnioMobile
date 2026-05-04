@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -209,10 +210,7 @@ fun HomeHeroSection(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(
-                        horizontal = layout.contentHorizontalPadding,
-                        vertical = layout.contentVerticalPadding,
-                    ),
+                        .padding(heroContentPadding(layout)),
                     horizontalAlignment = Alignment.Start,
                 ) {
                     HeroTopBar(
@@ -287,6 +285,13 @@ private data class HeroPageLayer(
     val page: Int,
     val visibility: Float,
     val offset: Float,
+)
+
+internal fun heroContentPadding(layout: HomeHeroLayout): PaddingValues = PaddingValues(
+    start = layout.contentHorizontalPadding,
+    top = layout.contentVerticalPadding + layout.topBarTopPadding,
+    end = layout.contentHorizontalPadding,
+    bottom = layout.contentVerticalPadding,
 )
 
 private fun heroPageOffset(
