@@ -269,7 +269,7 @@ fun ProfileSelectionScreen(
                                     index++
                                 } else {
                                     if (profiles.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.width(150.dp))
+                                        Spacer(modifier = Modifier.width(ProfileCardWidth))
                                     }
                                 }
                             }
@@ -310,6 +310,10 @@ fun ProfileSelectionScreen(
     }
 }
 
+private val ProfileCardWidth = 150.dp
+private val ProfileCardHeight = 196.dp
+private val ProfileCardShape = RoundedCornerShape(20.dp)
+
 @Composable
 private fun ProfileAvatarCard(
     profile: NuvioProfile,
@@ -343,16 +347,17 @@ private fun ProfileAvatarCard(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(150.dp)
+            .width(ProfileCardWidth)
+            .height(ProfileCardHeight)
             .graphicsLayer {
                 alpha = animAlpha.value
                 scaleX = animScale.value * pressScale
                 scaleY = animScale.value * pressScale
                 translationY = animOffset.value
             }
-            .clip(RoundedCornerShape(20.dp))
+            .clip(ProfileCardShape)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(20.dp))
+            .border(1.dp, omnioHairlineColor(), ProfileCardShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -468,20 +473,26 @@ private fun ProfileAvatarCard(
             overflow = TextOverflow.Ellipsis,
         )
 
-        if (profile.isKids) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(
-                    Res.string.profile_kids_up_to,
-                    profile.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier.height(24.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            if (profile.isKids) {
+                Text(
+                    text = stringResource(
+                        Res.string.profile_kids_up_to,
+                        profile.effectiveMaxAgeRating() ?: DEFAULT_KIDS_MAX_AGE_RATING,
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -509,16 +520,17 @@ private fun AddProfileCard(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(150.dp)
+            .width(ProfileCardWidth)
+            .height(ProfileCardHeight)
             .graphicsLayer {
                 alpha = animAlpha.value
                 scaleX = animScale.value * pressScale
                 scaleY = animScale.value * pressScale
                 translationY = animOffset.value
             }
-            .clip(RoundedCornerShape(20.dp))
+            .clip(ProfileCardShape)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-            .border(1.dp, omnioHairlineColor(), RoundedCornerShape(20.dp))
+            .border(1.dp, omnioHairlineColor(), ProfileCardShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
