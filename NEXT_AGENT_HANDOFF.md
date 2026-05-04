@@ -29,39 +29,26 @@
 - Fixed a mobile home hero safe-area issue where the `Omnio` brand label could overlap the status bar.
 - Kept the brand in the existing top-left hero position and added mobile-only top safe-area spacing instead of redesigning the hero.
 
-## Exact Files Changed In This Session
+## Exact Files Changed For Task 4 Addition
 
-- `composeApp/src/commonMain/kotlin/com/nuvio/app/features/player/PlayerSourcesPanel.kt`
-- `composeApp/src/commonMain/kotlin/com/nuvio/app/features/player/PlayerEpisodesPanel.kt`
-- `composeApp/src/commonTest/kotlin/com/nuvio/app/features/player/PlayerPanelFilterOptionsTest.kt`
 - `composeApp/src/commonMain/kotlin/com/nuvio/app/features/home/components/HomeHeroSection.kt`
 - `composeApp/src/commonTest/kotlin/com/nuvio/app/features/home/components/HomeHeroSectionTest.kt`
 - `NEXT_AGENT_HANDOFF.md`
 
-## Commands Run
+## Commands Run For Task 4 Addition
 
-- `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.player.PlayerPanelFilterOptionsTest'`
 - `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.home.components.HomeHeroSectionTest'`
 - `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.home.components.HomeHeroSectionTest' --tests 'com.nuvio.app.features.home.HomeScreenTest' --tests 'com.nuvio.app.features.player.PlayerPanelFilterOptionsTest'`
 - `./gradlew :composeApp:assembleFullDebug`
-- `./gradlew :composeApp:compileKotlinIosSimulatorArm64`
 
-## Verification Results
+## Verification Results For Task 4 Addition
 
-- `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.player.PlayerPanelFilterOptionsTest'`
-  - Passed.
-  - This test was first run before the helper existed and failed with unresolved references, then passed after the minimal fix was added.
-  - Existing repo warnings were still emitted, including expect/actual beta warnings and unrelated deprecation warnings.
 - `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.home.components.HomeHeroSectionTest'`
-  - Passed after the mobile-only `topBarTopPadding` layout field and hero top-bar padding update were in place.
+  - Passed.
 - `./gradlew :composeApp:testFullDebugUnitTest --tests 'com.nuvio.app.features.home.components.HomeHeroSectionTest' --tests 'com.nuvio.app.features.home.HomeScreenTest' --tests 'com.nuvio.app.features.player.PlayerPanelFilterOptionsTest'`
   - Passed.
 - `./gradlew :composeApp:assembleFullDebug`
   - Passed.
-- `./gradlew :composeApp:compileKotlinIosSimulatorArm64`
-  - `BUILD SUCCESSFUL`.
-  - `:composeApp:compileKotlinIosSimulatorArm64` itself was `SKIPPED` on this Linux host.
-  - Gradle still emitted the known Skiko compatibility warning during the task graph.
 
 ## Remaining Work
 
