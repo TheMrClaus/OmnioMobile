@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -60,6 +61,7 @@ import com.nuvio.app.core.build.TrailerPlaybackMode
 import com.nuvio.app.core.network.NetworkCondition
 import com.nuvio.app.core.network.NetworkStatusRepository
 import com.nuvio.app.core.ui.NuvioBackButton
+import com.nuvio.app.core.ui.NuvioFilterChip
 import com.nuvio.app.core.ui.TraktListPickerDialog
 import com.nuvio.app.core.ui.nuvioSafeBottomPadding
 import com.nuvio.app.features.details.components.DetailActionButtons
@@ -1021,7 +1023,7 @@ private fun ConfiguredMetaSections(
     val sectionHasContent: (MetaScreenSectionKey) -> Boolean = { key ->
         when (key) {
             MetaScreenSectionKey.ACTIONS -> true
-            MetaScreenSectionKey.OVERVIEW -> true
+            MetaScreenSectionKey.OVERVIEW -> hasOverviewContent(meta)
             MetaScreenSectionKey.PRODUCTION -> hasProductionSection
             MetaScreenSectionKey.CAST -> meta.cast.isNotEmpty()
             MetaScreenSectionKey.COMMENTS -> shouldShowComments && (isCommentsLoading || comments.isNotEmpty() || !commentsError.isNullOrBlank())
@@ -1052,7 +1054,9 @@ private fun ConfiguredMetaSections(
                 )
             }
             MetaScreenSectionKey.OVERVIEW -> {
-                DetailMetaInfo(meta = meta)
+                if (hasOverviewContent(meta)) {
+                    DetailMetaInfo(meta = meta)
+                }
             }
             MetaScreenSectionKey.PRODUCTION -> {
                 if (hasProductionSection) {
@@ -1178,51 +1182,24 @@ private fun TabbedSectionGroup(
     val clampedIndex = selectedIndex.coerceIn(0, tabs.lastIndex)
     if (clampedIndex != selectedIndex) selectedIndex = clampedIndex
 
-    val headerColor = MaterialTheme.colorScheme.onBackground
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Tab row using the same style as DetailSectionTitle
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val titleSize = if (maxWidth >= 720.dp) 22.sp else 20.sp
-            val headerStyle = MaterialTheme.typography.titleLarge.copy(
-                fontSize = titleSize,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                tabs.forEachIndexed { index, (_, title) ->
-                    if (index > 0) {
-                        Text(
-                            text = "|",
-                            style = headerStyle,
-                            color = headerColor.copy(alpha = 0.45f),
-                            modifier = Modifier.padding(horizontal = 10.dp),
-                        )
-                    }
-
-                    Text(
-                        text = title,
-                        style = headerStyle,
-                        color = if (index == selectedIndex) {
-                            headerColor
-                        } else {
-                            headerColor.copy(alpha = 0.55f)
-                        },
-                        maxLines = 1,
-                        modifier = Modifier
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) { selectedIndex = index },
-                    )
-                }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.forEachIndexed { index, (_, title) ->
+                NuvioFilterChip(
+                    text = title,
+                    selected = index == selectedIndex,
+                    onClick = { selectedIndex = index },
+                )
             }
         }
 
-        // Content with crossfade
         Crossfade(
             targetState = tabs[selectedIndex].first,
             animationSpec = tween(durationMillis = 200),
@@ -1239,3 +1216,15 @@ private fun detailTabletContentMaxWidth(maxWidth: Dp, isTablet: Boolean): Dp =
     } else {
         (maxWidth * 0.6f).coerceIn(520.dp, 680.dp)
     }
+
+internal fun hasOverviewContent(meta: MetaDetails): Boolean {
+    if (!meta.description.isNullOrBlank()) return true
+    if (formatMetaReleaseLineForDetails(meta) != null) return true
+    if (formatRuntimeForDisplay(meta.runtime) != null) return true
+    if (!meta.ageRating.isNullOrBlank()) return true
+    if (meta.imdbRating != null) return true
+    if (meta.externalRatings.isNotEmpty()) return true
+    if (meta.director.isNotEmpty()) return true
+    if (meta.writer.isNotEmpty()) return true
+    return false
+}

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -65,7 +66,7 @@ fun <T> NuvioShelfSection(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (title.isNotBlank()) {
             NuvioShelfSectionHeader(
@@ -139,6 +140,11 @@ fun NuvioPosterCard(
                     modifier = Modifier.matchParentSize(),
                     contentScale = ContentScale.Crop,
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(omnioCardOverlayBrush()),
+                )
             } else {
                 Text(
                     text = title,
@@ -197,7 +203,7 @@ fun NuvioPosterCard(
             if (!detailLine.isNullOrBlank()) {
                 Text(
                     text = detailLine,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -238,8 +244,8 @@ private fun NuvioShelfSectionHeader(
                 Box(
                     modifier = Modifier
                         .padding(top = 6.dp)
-                        .width(60.dp)
-                        .height(4.dp)
+                        .width(44.dp)
+                        .height(3.dp)
                         .background(
                             color = MaterialTheme.colorScheme.primary,
                             shape = RoundedCornerShape(999.dp),
@@ -276,7 +282,7 @@ private fun NuvioViewAllPill(
         modifier = Modifier
             .background(
                 color = if (isAmoled) androidx.compose.ui.graphics.Color(0xFF0D0D0D) else colorScheme.surface,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(999.dp),
             )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = horizontalPadding, vertical = verticalPadding),

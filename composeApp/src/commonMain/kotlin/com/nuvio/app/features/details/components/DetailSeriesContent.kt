@@ -60,7 +60,9 @@ import co.touchlab.kermit.Logger
 import com.nuvio.app.core.format.formatReleaseDateForDisplay
 import com.nuvio.app.core.i18n.localizedSeasonEpisodeCode
 import com.nuvio.app.core.ui.NuvioAnimatedWatchedBadge
+import com.nuvio.app.core.ui.NuvioFilterChip
 import com.nuvio.app.core.ui.NuvioProgressBar
+import com.nuvio.app.core.ui.omnioCardOverlayBrush
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaEpisodeCardStyle
 import com.nuvio.app.features.details.MetaVideo
@@ -327,9 +329,9 @@ private fun SeasonViewModeToggle(
             .clip(RoundedCornerShape(8.dp))
             .background(
                 if (isPosters) {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 },
             )
             .border(
@@ -388,37 +390,11 @@ private fun SeasonTextChipScrollRow(
         horizontalArrangement = Arrangement.spacedBy(sizing.seasonChipGap),
     ) {
         items(seasons, key = { season -> season }) { season ->
-            val isSelected = season == currentSeason
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(sizing.seasonChipRadius))
-                    .background(
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        } else {
-                            Color.Transparent
-                        },
-                    )
-                    .clickable { onSelect(season) }
-                    .padding(
-                        horizontal = sizing.seasonChipHorizontalPadding,
-                        vertical = sizing.seasonChipVerticalPadding,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = season.label(),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = sizing.seasonChipTextSize,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    ),
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+            NuvioFilterChip(
+                text = season.label(),
+                selected = season == currentSeason,
+                onClick = { onSelect(season) },
+            )
         }
     }
 }
@@ -504,6 +480,11 @@ private fun SeasonPosterButton(
                     contentDescription = label,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(omnioCardOverlayBrush()),
                 )
             } else {
                 Box(

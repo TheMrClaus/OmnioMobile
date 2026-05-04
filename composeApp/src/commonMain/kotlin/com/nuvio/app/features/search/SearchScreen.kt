@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.network.NetworkCondition
 import com.nuvio.app.core.network.NetworkStatusRepository
 import com.nuvio.app.core.ui.NuvioInputField
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
 import com.nuvio.app.core.ui.NuvioScreen
 import com.nuvio.app.core.ui.NuvioNetworkOfflineCard
 import com.nuvio.app.core.ui.NuvioScreenHeader
@@ -222,10 +223,10 @@ fun SearchScreen(
             ) {
                 NuvioScreenHeader(
                     title = headerTitle,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = OmnioSurfaceTokens.pagePadding),
                 )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
-                androidx.compose.foundation.layout.Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
+                androidx.compose.foundation.layout.Box(modifier = Modifier.padding(horizontal = OmnioSurfaceTokens.pagePadding)) {
                     NuvioInputField(
                         value = query,
                         onValueChange = { query = it },
@@ -245,7 +246,7 @@ fun SearchScreen(
                         },
                     )
                 }
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(14.dp))
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(18.dp))
             }
         }
 
@@ -391,15 +392,14 @@ private fun SearchRecentSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = OmnioSurfaceTokens.pagePadding, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = stringResource(Res.string.compose_search_recent_searches),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(modifier = Modifier.height(4.dp))
         recentSearches.forEach { recentQuery ->
             SearchRecentRow(
                 query = recentQuery,
@@ -422,12 +422,11 @@ private fun SearchRecentRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onSearchPress)
-            .padding(vertical = 2.dp)
             .background(
-                color = MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(20.dp),
             )
-            .padding(start = 2.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            .padding(start = 6.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

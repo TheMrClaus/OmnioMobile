@@ -49,6 +49,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.format.formatReleaseDateForDisplay
+import com.nuvio.app.core.ui.NuvioFilterChip
+import com.nuvio.app.core.ui.NuvioPrimaryButton
+import com.nuvio.app.core.ui.NuvioSecondaryButton
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
+import com.nuvio.app.core.ui.omnioBottomFadeBrush
+import com.nuvio.app.core.ui.omnioHeroScrimBrush
 import com.nuvio.app.features.home.MetaPreview
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -102,7 +108,7 @@ fun HomeHeroSection(
                 itemCount = items.size,
                 coroutineScope = coroutineScope,
             )
-            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
+            .clip(OmnioSurfaceTokens.heroShape),
     ) {
         val layout = homeHeroLayout(
             maxWidthDp = maxWidth.value,
@@ -187,16 +193,7 @@ fun HomeHeroSection(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.02f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.12f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.34f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.78f),
-                                ),
-                            ),
-                        ),
+                        .background(omnioHeroScrimBrush()),
                 )
 
                 Box(
@@ -204,14 +201,7 @@ fun HomeHeroSection(
                         .fillMaxWidth()
                         .height(layout.bottomFadeHeight)
                         .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0f),
-                                    MaterialTheme.colorScheme.background,
-                                ),
-                            ),
-                        ),
+                        .background(omnioBottomFadeBrush()),
                 )
 
                 Column(
@@ -219,16 +209,23 @@ fun HomeHeroSection(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(
-                            horizontal = layout.contentHorizontalPadding,
-                            vertical = layout.contentVerticalPadding,
-                        ),
-                    horizontalAlignment = if (layout.isTablet) Alignment.Start else Alignment.CenterHorizontally,
+                        horizontal = layout.contentHorizontalPadding,
+                        vertical = layout.contentVerticalPadding,
+                    ),
+                    horizontalAlignment = Alignment.Start,
                 ) {
+                    HeroTopBar(
+                        isTablet = layout.isTablet,
+                        item = currentItem,
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(layout.contentWidthFraction)
                             .widthIn(max = layout.contentMaxWidth),
-                        contentAlignment = if (layout.isTablet) Alignment.CenterStart else Alignment.Center,
+                        contentAlignment = Alignment.CenterStart,
                     ) {
                         visiblePages.forEach { layer ->
                             Box(
@@ -246,25 +243,12 @@ fun HomeHeroSection(
                         }
                     }
 
-                    if (!layout.isTablet) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Surface(
-                            modifier = Modifier
-                                .clickable(enabled = onItemClick != null) {
-                                    onItemClick?.invoke(currentItem)
-                                },
-                            color = MaterialTheme.colorScheme.onBackground,
-                            contentColor = MaterialTheme.colorScheme.background,
-                            shape = RoundedCornerShape(40.dp),
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.home_view_details),
-                                modifier = Modifier.padding(horizontal = 28.dp, vertical = 12.dp),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(18.dp))
+                    HeroCtaRow(
+                        item = currentItem,
+                        layout = layout,
+                        onItemClick = onItemClick,
+                    )
 
                     if (items.size > 1) {
                         Spacer(modifier = Modifier.height(if (layout.isTablet) 14.dp else 12.dp))
@@ -284,10 +268,10 @@ fun HomeHeroSection(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.onBackground)
                                         .graphicsLayer {
-                                            alpha = 0.35f + (0.57f * activeFraction)
+                                            alpha = 0.28f + (0.62f * activeFraction)
                                         }
-                                        .width(8.dp + (24.dp * activeFraction))
-                                        .height(8.dp),
+                                        .width(8.dp + (28.dp * activeFraction))
+                                        .height(6.dp),
                                 )
                             }
                         }
@@ -349,7 +333,7 @@ private fun HeroContentBlock(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (layout.isTablet) Alignment.Start else Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
     ) {
         if (item.logo != null) {
             AsyncImage(
@@ -388,11 +372,7 @@ private fun HeroContentBlock(
         Spacer(modifier = Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (layout.isTablet) {
-                Arrangement.spacedBy(8.dp, Alignment.Start)
-            } else {
-                Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-            },
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HeroMetaText(text = item.type.replaceFirstChar(Char::uppercase))
@@ -432,7 +412,7 @@ internal fun homeHeroLayout(
             contentMaxWidth = 640.dp,
             contentWidthFraction = 0.56f,
             contentHorizontalPadding = 56.dp,
-            contentVerticalPadding = 22.dp,
+            contentVerticalPadding = 24.dp,
             bottomFadeHeight = 190.dp,
             logoWidthFraction = 0.58f,
         )
@@ -465,8 +445,8 @@ internal fun homeHeroLayout(
             ),
             contentMaxWidth = 480.dp,
             contentWidthFraction = 1f,
-            contentHorizontalPadding = 24.dp,
-            contentVerticalPadding = 16.dp,
+            contentHorizontalPadding = 20.dp,
+            contentVerticalPadding = 18.dp,
             bottomFadeHeight = 220.dp,
             logoWidthFraction = 0.62f,
         )
@@ -499,6 +479,68 @@ private fun HeroMetaDot() {
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)),
     )
+}
+
+@Composable
+private fun HeroTopBar(
+    isTablet: Boolean,
+    item: MetaPreview,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.app_brand_name),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            NuvioFilterChip(
+                text = item.type.replaceFirstChar(Char::uppercase),
+                selected = true,
+            )
+            item.genres.firstOrNull()?.let { genre ->
+                NuvioFilterChip(text = genre)
+            }
+            if (isTablet && !item.releaseInfo.isNullOrBlank()) {
+                NuvioFilterChip(text = formatReleaseDateForDisplay(item.releaseInfo))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroCtaRow(
+    item: MetaPreview,
+    layout: HomeHeroLayout,
+    onItemClick: ((MetaPreview) -> Unit)?,
+) {
+    if (layout.isTablet) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NuvioPrimaryButton(
+                text = stringResource(Res.string.home_view_details),
+                modifier = Modifier.width(192.dp),
+                onClick = { onItemClick?.invoke(item) },
+            )
+            NuvioSecondaryButton(
+                text = item.type.replaceFirstChar(Char::uppercase),
+                modifier = Modifier.width(160.dp),
+                onClick = { onItemClick?.invoke(item) },
+            )
+        }
+    } else {
+        NuvioPrimaryButton(
+            text = stringResource(Res.string.home_view_details),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { onItemClick?.invoke(item) },
+        )
+    }
 }
 
 private fun heroBackgroundScrollScale(scrollOffsetPx: Float): Float {

@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListScope
@@ -58,6 +60,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -107,7 +112,7 @@ fun NuvioSurfaceCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(24.dp),
+        shape = OmnioSurfaceTokens.cardShape,
         tonalElevation = tonalElevation.dp,
         shadowElevation = 0.dp,
     ) {
@@ -267,14 +272,14 @@ fun NuvioPrimaryButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
+            .height(54.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp),
+        shape = OmnioSurfaceTokens.buttonShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
-            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.65f),
         ),
     ) {
         AnimatedContent(
@@ -292,6 +297,35 @@ fun NuvioPrimaryButton(
 }
 
 @Composable
+fun NuvioSecondaryButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        enabled = enabled,
+        shape = OmnioSurfaceTokens.buttonShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        ),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
 fun NuvioInputField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -304,7 +338,7 @@ fun NuvioInputField(
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         singleLine = true,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(20.dp),
         placeholder = {
             Text(
                 text = placeholder,
@@ -317,8 +351,8 @@ fun NuvioInputField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.outline,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             cursorColor = MaterialTheme.colorScheme.primary,
         ),
     )
@@ -333,7 +367,7 @@ fun NuvioInfoBadge(
         modifier = modifier
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(999.dp),
+                shape = OmnioSurfaceTokens.chipShape,
             )
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
@@ -343,6 +377,52 @@ fun NuvioInfoBadge(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+fun NuvioFilterChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val background = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)
+    }
+    val textColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = modifier
+            .clip(OmnioSurfaceTokens.chipShape)
+            .background(background)
+            .border(1.dp, borderColor, OmnioSurfaceTokens.chipShape)
+            .then(
+                if (onClick != null) {
+                    Modifier.selectable(
+                        selected = selected,
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier.semantics { this.selected = selected }
+                },
+            )
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = textColor,
+            maxLines = 1,
         )
     }
 }

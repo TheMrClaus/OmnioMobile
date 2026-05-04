@@ -50,6 +50,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.core.ui.AppIconResource
 import com.nuvio.app.core.ui.NuvioBackButton
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
+import com.nuvio.app.core.ui.omnioGlassSurfaceColor
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.core.ui.appIconPainter
 import com.nuvio.app.core.ui.nuvioTypeScale
 import nuvio.composeapp.generated.resources.*
@@ -88,12 +91,12 @@ internal fun PlayerControlsShell(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
+                .height(180.dp)
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.7f),
+                            Color.Black.copy(alpha = 0.82f),
                             Color.Transparent,
                         ),
                     ),
@@ -103,13 +106,13 @@ internal fun PlayerControlsShell(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(240.dp)
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.7f),
+                            Color(0xFF120304).copy(alpha = 0.88f),
                         ),
                     ),
                 ),
@@ -274,7 +277,7 @@ private fun PlayerHeader(
                 )
                 NuvioBackButton(
                     onClick = onBack,
-                    containerColor = Color.Black.copy(alpha = 0.35f),
+                    containerColor = omnioGlassSurfaceColor(),
                     contentColor = Color.White,
                     buttonSize = metrics.headerIconSize + 16.dp,
                     iconSize = metrics.headerIconSize,
@@ -297,7 +300,8 @@ private fun PlayerHeaderIconButton(
         modifier = Modifier
             .size(buttonSize)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.35f))
+            .background(omnioGlassSurfaceColor())
+            .border(1.dp, omnioHairlineColor(), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -355,6 +359,8 @@ private fun SideControlButton(
     Box(
         modifier = Modifier
             .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.14f))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
             .clickable(onClick = onClick)
             .padding(metrics.sideButtonPadding),
         contentAlignment = Alignment.Center,
@@ -363,7 +369,7 @@ private fun SideControlButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = Color.White,
-            modifier = Modifier.size(metrics.playIconSize),
+            modifier = Modifier.size(metrics.sideIconSize),
         )
     }
 }
@@ -382,6 +388,8 @@ private fun PlayPauseControlButton(
     Box(
         modifier = Modifier
             .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.22f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
             .clickable(onClick = onClick)
             .padding(metrics.playButtonPadding),
         contentAlignment = Alignment.Center,
@@ -427,6 +435,11 @@ private fun ProgressControls(
     val aspectRatioPainter = appIconPainter(AppIconResource.PlayerAspectRatio)
     val subtitlesPainter = appIconPainter(AppIconResource.PlayerSubtitles)
     val audioPainter = appIconPainter(AppIconResource.PlayerAudioFilled)
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = Color(0xFFE50914),
+        activeTrackColor = Color(0xFFE50914),
+        inactiveTrackColor = Color.White.copy(alpha = 0.22f),
+    )
 
     Column(modifier = modifier) {
         Slider(
@@ -438,6 +451,7 @@ private fun ProgressControls(
             onValueChange = { value -> onScrubChange(value.toLong()) },
             onValueChangeFinished = { onScrubFinished(displayedPositionMs.coerceIn(0L, durationMs)) },
             valueRange = 0f..durationMs.toFloat(),
+            colors = sliderColors,
         )
         Row(
             modifier = Modifier
@@ -455,16 +469,16 @@ private fun ProgressControls(
             horizontalArrangement = Arrangement.Center,
         ) {
             Surface(
-                color = Color.Black.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(24.dp),
+                color = omnioGlassSurfaceColor(),
+                shape = OmnioSurfaceTokens.cardShape,
                 modifier = Modifier.border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(24.dp),
+                    color = omnioHairlineColor(),
+                    shape = OmnioSurfaceTokens.cardShape,
                 ),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -553,8 +567,8 @@ internal fun LockedPlayerOverlay(
                 modifier = Modifier
                     .size(78.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.52f))
-                    .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                    .background(omnioGlassSurfaceColor())
+                    .border(1.dp, omnioHairlineColor(), CircleShape)
                     .clickable(onClick = onUnlock),
                 contentAlignment = Alignment.Center,
             ) {
@@ -569,7 +583,7 @@ internal fun LockedPlayerOverlay(
             Text(
                 text = stringResource(Res.string.compose_player_tap_to_unlock),
                 style = MaterialTheme.nuvioTypeScale.bodyMd.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White.copy(alpha = 0.92f),
+                color = Color.White.copy(alpha = 0.84f),
             )
         }
 
@@ -615,7 +629,7 @@ private fun TimePill(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black.copy(alpha = 0.5f))
+            .background(Color.Black.copy(alpha = 0.58f))
             .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
@@ -640,9 +654,9 @@ private fun PlayerActionPillButton(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(22.dp))
+            .clip(OmnioSurfaceTokens.chipShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -650,21 +664,21 @@ private fun PlayerActionPillButton(
             painter != null -> Icon(
                 painter = painter,
                 contentDescription = label,
-                tint = Color.White,
+                tint = Color.White.copy(alpha = 0.92f),
                 modifier = Modifier.size(18.dp),
             )
 
             icon != null -> Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.White,
+                tint = Color.White.copy(alpha = 0.92f),
                 modifier = Modifier.size(18.dp),
             )
         }
         Text(
             text = label,
-            style = MaterialTheme.nuvioTypeScale.labelSm,
-            color = Color.White,
+            style = MaterialTheme.nuvioTypeScale.labelSm.copy(fontWeight = FontWeight.Medium),
+            color = Color.White.copy(alpha = 0.9f),
         )
     }
 }

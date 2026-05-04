@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +59,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.nuvio.app.core.ui.OmnioSurfaceTokens
 import com.nuvio.app.core.ui.NuvioBackButton
+import com.nuvio.app.core.ui.omnioBackdropWashBrush
+import com.nuvio.app.core.ui.omnioGlassSurfaceColor
+import com.nuvio.app.core.ui.omnioHairlineColor
 import com.nuvio.app.core.ui.nuvioTypeScale
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.compose_player_close
@@ -213,9 +218,9 @@ internal fun GestureFeedbackPill(
     modifier: Modifier = Modifier,
 ) {
     val backgroundColor = if (feedback.isDanger) {
-        Color(0xFF5D1F1F).copy(alpha = 0.88f)
+        Color(0xFF381012).copy(alpha = 0.92f)
     } else {
-        Color.Black.copy(alpha = 0.75f)
+        omnioGlassSurfaceColor()
     }
     val iconBackgroundColor = if (feedback.isDanger) {
         Color(0xFFFF8A80).copy(alpha = 0.22f)
@@ -240,8 +245,13 @@ internal fun GestureFeedbackPill(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
+            .clip(OmnioSurfaceTokens.chipShape)
             .background(backgroundColor)
+            .border(
+                width = 1.dp,
+                color = if (feedback.isDanger) Color(0xFF8D3137).copy(alpha = 0.9f) else omnioHairlineColor(),
+                shape = OmnioSurfaceTokens.chipShape,
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -294,13 +304,18 @@ internal fun PauseMetadataOverlay(
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0.85f),
-                        Color.Black.copy(alpha = 0.45f),
+                        Color.Black.copy(alpha = 0.9f),
+                        Color(0xFF200506).copy(alpha = 0.62f),
                         Color.Transparent,
                     ),
                 ),
             ),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(omnioBackdropWashBrush()),
+        )
         val compactHeight = maxHeight < 420.dp
         val veryCompactHeight = maxHeight < 340.dp
         val topPadding = if (compactHeight) 24.dp else 40.dp
@@ -415,44 +430,74 @@ internal fun ErrorModal(
             .background(Color.Black.copy(alpha = 0.9f)),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
+        Box(
             modifier = Modifier
+                .fillMaxSize()
+                .background(omnioBackdropWashBrush()),
+        )
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 420.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 24.dp),
+            color = omnioGlassSurfaceColor(),
+            shape = OmnioSurfaceTokens.cardShape,
+            border = BorderStroke(1.dp, omnioHairlineColor()),
         ) {
-            Text(
-                text = stringResource(Res.string.compose_player_playback_error),
-                style = MaterialTheme.nuvioTypeScale.displaySm.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.nuvioTypeScale.bodyLg.copy(lineHeight = 24.sp),
-                color = Color.White.copy(alpha = 0.72f),
-                textAlign = TextAlign.Center,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Surface(
+            Column(
                 modifier = Modifier
-                    .padding(top = 4.dp)
-                    .widthIn(min = 180.dp, max = 260.dp)
-                    .clickable(onClick = onDismiss),
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(12.dp),
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
-                    text = stringResource(Res.string.compose_player_go_back),
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    style = MaterialTheme.nuvioTypeScale.bodyLg.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFF7C1F2B).copy(alpha = 0.18f))
+                        .border(1.dp, Color(0xFF9F3341).copy(alpha = 0.38f), RoundedCornerShape(18.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ErrorOutline,
+                        contentDescription = null,
+                        tint = Color(0xFFFFCDD6),
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.compose_player_playback_error),
+                    style = MaterialTheme.nuvioTypeScale.displaySm.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
                     textAlign = TextAlign.Center,
                 )
+                Text(
+                    text = message,
+                    style = MaterialTheme.nuvioTypeScale.bodyLg.copy(lineHeight = 24.sp),
+                    color = Color.White.copy(alpha = 0.72f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Surface(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .widthIn(min = 180.dp, max = 260.dp)
+                        .clickable(onClick = onDismiss),
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.compose_player_go_back),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        style = MaterialTheme.nuvioTypeScale.bodyLg.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

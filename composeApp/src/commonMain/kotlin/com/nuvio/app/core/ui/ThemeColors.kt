@@ -11,7 +11,7 @@ data class ThemeColorPalette(
     val focusBackground: Color,
     val background: Color = Color(0xFF0D0D0D),
     val backgroundElevated: Color = Color(0xFF1A1A1A),
-    val backgroundCard: Color = Color(0xFF242424),
+    val backgroundCard: Color = Color(0xFF222222),
 )
 
 object ThemeColors {
@@ -77,12 +77,12 @@ object ThemeColors {
     )
 
     val White = ThemeColorPalette(
-        secondary = Color(0xFFF5F5F5),
-        secondaryVariant = Color(0xFFE0E0E0),
-        onSecondary = Color(0xFF111111),
-        onSecondaryVariant = Color(0xFF111111),
-        focusRing = Color(0xFFFFFFFF),
-        focusBackground = Color(0xFF303030),
+        secondary = Color(0xFFE50914),
+        secondaryVariant = Color(0xFFF5F7F8),
+        onSecondary = Color(0xFFF5F7F8),
+        onSecondaryVariant = Color(0xFF0D0D0D),
+        focusRing = Color(0xFFFF5C63),
+        focusBackground = Color(0xFF311114),
         background = Color(0xFF0D0D0D),
         backgroundElevated = Color(0xFF1A1A1A),
         backgroundCard = Color(0xFF222222),
