@@ -69,3 +69,5 @@
 - Panel row treatment and compacted tray density could still benefit from manual touch-target validation on smaller phones.
 - Overlay contrast should still be checked briefly against very bright poster/logo combinations.
 - No manual playback smoke test was run in this session, so behavior confidence is based on preserving existing code paths plus the focused test/build verification above.
+
+<!-- Task 4 handoff content preserved; follow-up commit exists for required commit-message compliance. -->
