@@ -85,6 +85,7 @@ internal data class HomeHeroLayout(
     val contentWidthFraction: Float,
     val contentHorizontalPadding: Dp,
     val contentVerticalPadding: Dp,
+    val topBarTopPadding: Dp,
     val bottomFadeHeight: Dp,
     val logoWidthFraction: Float,
 )
@@ -212,9 +213,11 @@ fun HomeHeroSection(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(
-                        horizontal = layout.contentHorizontalPadding,
-                        vertical = layout.contentVerticalPadding,
-                    ),
+                            start = layout.contentHorizontalPadding,
+                            top = layout.contentVerticalPadding + layout.topBarTopPadding,
+                            end = layout.contentHorizontalPadding,
+                            bottom = layout.contentVerticalPadding,
+                        ),
                     horizontalAlignment = Alignment.Start,
                 ) {
                     HeroTopBar(
@@ -416,6 +419,7 @@ internal fun homeHeroLayout(
             contentWidthFraction = 0.56f,
             contentHorizontalPadding = 56.dp,
             contentVerticalPadding = 24.dp,
+            topBarTopPadding = 0.dp,
             bottomFadeHeight = 190.dp,
             logoWidthFraction = 0.58f,
         )
@@ -426,6 +430,7 @@ internal fun homeHeroLayout(
             contentWidthFraction = 0.62f,
             contentHorizontalPadding = 40.dp,
             contentVerticalPadding = 20.dp,
+            topBarTopPadding = 0.dp,
             bottomFadeHeight = 180.dp,
             logoWidthFraction = 0.56f,
         )
@@ -436,6 +441,7 @@ internal fun homeHeroLayout(
             contentWidthFraction = 0.72f,
             contentHorizontalPadding = 32.dp,
             contentVerticalPadding = 18.dp,
+            topBarTopPadding = 0.dp,
             bottomFadeHeight = 170.dp,
             logoWidthFraction = 0.54f,
         )
@@ -450,6 +456,7 @@ internal fun homeHeroLayout(
             contentWidthFraction = 1f,
             contentHorizontalPadding = 20.dp,
             contentVerticalPadding = 18.dp,
+            topBarTopPadding = 28.dp,
             bottomFadeHeight = 220.dp,
             logoWidthFraction = 0.62f,
         )
