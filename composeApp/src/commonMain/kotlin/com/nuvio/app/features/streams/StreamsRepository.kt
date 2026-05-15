@@ -6,6 +6,8 @@ import com.nuvio.app.features.addons.AddonRepository
 import com.nuvio.app.features.addons.buildAddonResourceUrl
 import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.details.MetaDetailsRepository
+import com.nuvio.app.features.emby.EmbyAuthRepository
+import com.nuvio.app.features.emby.EmbyMediaService
 import com.nuvio.app.features.player.PlayerSettingsRepository
 import com.nuvio.app.features.plugins.PluginRepository
 import com.nuvio.app.features.plugins.pluginContentId
@@ -29,6 +31,7 @@ import kotlinx.coroutines.launch
 
 object StreamsRepository {
     private val log = Logger.withTag("StreamsRepo")
+    private const val EMBY_ADDON_ID = "emby"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _uiState = MutableStateFlow(StreamsUiState())
     val uiState: StateFlow<StreamsUiState> = _uiState.asStateFlow()
@@ -96,7 +99,10 @@ object StreamsRepository {
         }
 
         val embeddedStreams = MetaDetailsRepository.findEmbeddedStreams(videoId)
-        if (embeddedStreams.isNotEmpty()) {
+        EmbyAuthRepository.ensureLoaded()
+        val embyConfigured = EmbyAuthRepository.isConfigured()
+
+        if (embeddedStreams.isNotEmpty() && !embyConfigured) {
             log.d { "Using ${embeddedStreams.size} embedded streams for type=$type id=$videoId" }
             val group = AddonStreamGroup(
                 addonName = embeddedStreams.first().addonName,
@@ -123,7 +129,7 @@ object StreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty()) {
+        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && embeddedStreams.isEmpty()) {
             _uiState.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = StreamsEmptyStateReason.NoAddonsInstalled,
@@ -151,7 +157,7 @@ object StreamsRepository {
 
         log.d { "Found ${streamAddons.size} addons for stream type=$type id=$videoId" }
 
-            if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty()) {
+            if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && embeddedStreams.isEmpty()) {
             _uiState.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = StreamsEmptyStateReason.NoCompatibleAddons,
@@ -159,8 +165,29 @@ object StreamsRepository {
             return
         }
 
-        // Initialise loading placeholders
-        val initialGroups = streamAddons.map { addon ->
+        // Initialise loading placeholders. Emby (if configured) is shown first as its
+        // own synthetic addon group so it can be picked from the All tab and from a
+        // dedicated "Emby" filter tab. Embedded streams (if any) come next as a
+        // resolved group, followed by addons and plugin scrapers.
+        val embyPlaceholder = if (embyConfigured) {
+            AddonStreamGroup(
+                addonName = "Emby",
+                addonId = EMBY_ADDON_ID,
+                streams = emptyList(),
+                isLoading = true,
+            )
+        } else null
+
+        val embeddedGroup = if (embeddedStreams.isNotEmpty()) {
+            AddonStreamGroup(
+                addonName = embeddedStreams.first().addonName,
+                addonId = "embedded",
+                streams = embeddedStreams,
+                isLoading = false,
+            )
+        } else null
+
+        val initialGroups = listOfNotNull(embyPlaceholder, embeddedGroup) + streamAddons.map { addon ->
             AddonStreamGroup(
                 addonName = addon.addonName,
                 addonId = addon.addonId,
@@ -178,7 +205,7 @@ object StreamsRepository {
         _uiState.value = StreamsUiState(
             groups = initialGroups,
             activeAddonIds = initialGroups.map { it.addonId }.toSet(),
-            isAnyLoading = true,
+            isAnyLoading = initialGroups.any { it.isLoading },
             emptyStateReason = null,
             isDirectAutoPlayFlow = isDirectAutoPlayFlow,
             showDirectAutoPlayOverlay = isDirectAutoPlayFlow,
@@ -190,7 +217,8 @@ object StreamsRepository {
                 .associate { it.addonId to it.scrapers.size }
                 .toMutableMap()
             val pluginFirstErrorByAddonId = mutableMapOf<String, String>()
-            val totalTasks = streamAddons.size + pluginRemainingByAddonId.values.sum()
+            val totalTasks = streamAddons.size + pluginRemainingByAddonId.values.sum() +
+                (if (embyConfigured) 1 else 0)
 
             val installedAddonNames = installedAddons
                 .map { it.displayTitle }
@@ -237,6 +265,68 @@ object StreamsRepository {
                 }
             } else {
                 null
+            }
+
+            if (embyConfigured) {
+                launch {
+                    val group = runCatching {
+                        EmbyMediaService.findEmbyStream(
+                            videoId = videoId,
+                            contentType = type,
+                            season = season,
+                            episode = episode,
+                        )
+                    }.fold(
+                        onSuccess = { resolved ->
+                            if (resolved == null) {
+                                AddonStreamGroup(
+                                    addonName = "Emby",
+                                    addonId = EMBY_ADDON_ID,
+                                    streams = emptyList(),
+                                    isLoading = false,
+                                )
+                            } else {
+                                AddonStreamGroup(
+                                    addonName = "Emby",
+                                    addonId = EMBY_ADDON_ID,
+                                    streams = listOf(
+                                        StreamItem(
+                                            name = resolved.displayName,
+                                            description = resolved.serverName,
+                                            url = resolved.streamUrl,
+                                            sourceName = resolved.serverName,
+                                            addonName = "Emby",
+                                            addonId = EMBY_ADDON_ID,
+                                            behaviorHints = StreamBehaviorHints(
+                                                notWebReady = true,
+                                                proxyHeaders = StreamProxyHeaders(
+                                                    request = resolved.streamHeaders,
+                                                ),
+                                            ),
+                                            sourceProvider = "emby",
+                                            providerItemId = resolved.itemId,
+                                            providerMediaSourceId = resolved.mediaSourceId,
+                                            providerRuntimeMs = resolved.runTimeMs,
+                                            providerResumePositionMs = resolved.resumePositionMs,
+                                        ),
+                                    ),
+                                    isLoading = false,
+                                )
+                            }
+                        },
+                        onFailure = { err ->
+                            log.w(err) { "Failed to resolve Emby stream" }
+                            AddonStreamGroup(
+                                addonName = "Emby",
+                                addonId = EMBY_ADDON_ID,
+                                streams = emptyList(),
+                                isLoading = false,
+                                error = err.message,
+                            )
+                        },
+                    )
+                    completions.send(StreamLoadCompletion.Addon(group))
+                }
             }
 
             streamAddons.forEach { addon ->

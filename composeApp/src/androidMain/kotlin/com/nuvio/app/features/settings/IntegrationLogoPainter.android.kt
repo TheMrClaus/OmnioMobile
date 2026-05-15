@@ -14,4 +14,5 @@ internal actual fun integrationLogoPainter(logo: IntegrationLogo): Painter =
         IntegrationLogo.Tmdb -> composePainterResource(Res.drawable.rating_tmdb)
         IntegrationLogo.Trakt -> painterResource(id = R.drawable.trakt_tv_favicon)
         IntegrationLogo.MdbList -> painterResource(id = R.drawable.mdblist_logo)
+        IntegrationLogo.Emby -> embyFallbackPainter()
     }

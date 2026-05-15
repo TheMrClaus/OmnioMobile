@@ -32,6 +32,16 @@ data class PlayerLaunch(
     val parentMetaType: String,
     val initialPositionMs: Long = 0L,
     val initialProgressFraction: Float? = null,
+    /** Provider that produced this stream (e.g. "emby"). Null = standard addon stream. */
+    val sourceProvider: String? = null,
+    /** Provider-specific item id (e.g. Emby ItemId), used for session reporting. */
+    val providerItemId: String? = null,
+    /** Provider-specific media source id (Emby MediaSourceId). */
+    val providerMediaSourceId: String? = null,
+    /** Total runtime in milliseconds, when known from the provider. */
+    val providerRuntimeMs: Long? = null,
+    /** Provider-reported resume position (Emby UserData.PlaybackPositionTicks) in ms. */
+    val providerResumePositionMs: Long? = null,
 )
 
 object PlayerLaunchStore {

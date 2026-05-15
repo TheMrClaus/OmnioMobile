@@ -1324,6 +1324,11 @@ private fun MainAppContent(
                                 parentMetaType = launch.parentMetaType ?: launch.type,
                                 initialPositionMs = launch.resumePositionMs ?: 0L,
                                 initialProgressFraction = launch.resumeProgressFraction,
+                                sourceProvider = stream.sourceProvider,
+                                providerItemId = stream.providerItemId,
+                                providerMediaSourceId = stream.providerMediaSourceId,
+                                providerRuntimeMs = stream.providerRuntimeMs,
+                                providerResumePositionMs = stream.providerResumePositionMs,
                             )
                         )
                         StreamsRepository.consumeAutoPlay()
@@ -1403,6 +1408,11 @@ private fun MainAppContent(
                                         parentMetaType = launch.parentMetaType ?: launch.type,
                                         initialPositionMs = resolvedResumePositionMs ?: 0L,
                                         initialProgressFraction = resolvedResumeProgressFraction,
+                                        sourceProvider = stream.sourceProvider,
+                                        providerItemId = stream.providerItemId,
+                                        providerMediaSourceId = stream.providerMediaSourceId,
+                                        providerRuntimeMs = stream.providerRuntimeMs,
+                                        providerResumePositionMs = stream.providerResumePositionMs,
                                     )
                                 )
                                 navController.navigate(
@@ -1468,6 +1478,11 @@ private fun MainAppContent(
                         parentMetaType = launch.parentMetaType,
                         initialPositionMs = launch.initialPositionMs,
                         initialProgressFraction = launch.initialProgressFraction,
+                        sourceProvider = launch.sourceProvider,
+                        providerItemId = launch.providerItemId,
+                        providerMediaSourceId = launch.providerMediaSourceId,
+                        providerRuntimeMs = launch.providerRuntimeMs,
+                        providerResumePositionMs = launch.providerResumePositionMs,
                         onBack = {
                             ResumePromptRepository.markPlayerExitedNormally()
                             PlayerLaunchStore.remove(route.launchId)

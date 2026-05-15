@@ -15,6 +15,16 @@ data class StreamItem(
     val addonName: String,
     val addonId: String,
     val behaviorHints: StreamBehaviorHints = StreamBehaviorHints(),
+    /** Identifier of the upstream provider (e.g. "emby"). Null = standard addon stream. */
+    val sourceProvider: String? = null,
+    /** Provider-specific item id (e.g. Emby ItemId). Used for session reporting. */
+    val providerItemId: String? = null,
+    /** Provider-specific media source id (Emby MediaSourceId). */
+    val providerMediaSourceId: String? = null,
+    /** Total runtime in milliseconds, when known from the provider. */
+    val providerRuntimeMs: Long? = null,
+    /** Provider-reported resume position in milliseconds (e.g. Emby UserData.PlaybackPositionTicks). */
+    val providerResumePositionMs: Long? = null,
 ) {
     val streamLabel: String
         get() = name ?: runBlocking { getString(Res.string.stream_default_name) }

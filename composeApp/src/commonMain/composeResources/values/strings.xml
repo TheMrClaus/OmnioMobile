@@ -345,6 +345,7 @@
     <string name="compose_settings_page_continue_watching">Continue Watching</string>
     <string name="compose_settings_page_homescreen">Homescreen</string>
     <string name="compose_settings_page_integrations">Integrations</string>
+    <string name="compose_settings_page_emby">Emby</string>
     <string name="compose_settings_page_mdblist_ratings">MDBList Ratings</string>
     <string name="compose_settings_page_meta_screen">Meta Screen</string>
     <string name="compose_settings_page_notifications">Notifications</string>
@@ -505,6 +506,19 @@
     <string name="settings_integrations_section_title">INTEGRATIONS</string>
     <string name="settings_integrations_tmdb_description">Enhance detail pages with TMDB artwork, credits, episode metadata, and more.</string>
     <string name="settings_integrations_mdblist_description">Add IMDb, Rotten Tomatoes, Metacritic, and other external ratings to details pages.</string>
+    <string name="settings_integrations_emby_description">Stream from your Emby server, sync resume position, and report playback to Emby alongside Trakt.</string>
+    <string name="settings_emby_authentication">SERVER</string>
+    <string name="settings_emby_intro_description">Connect to your Emby server to play library content directly inside Omnio.</string>
+    <string name="settings_emby_sign_in_description">Enter your server URL and Emby user credentials to connect.</string>
+    <string name="settings_emby_server_url_label">Server URL</string>
+    <string name="settings_emby_server_url_hint">https://emby.example.com</string>
+    <string name="settings_emby_username_label">Username</string>
+    <string name="settings_emby_password_label">Password</string>
+    <string name="settings_emby_connect">Connect</string>
+    <string name="settings_emby_disconnect">Disconnect</string>
+    <string name="settings_emby_connected_as">Connected as %1$s on %2$s</string>
+    <string name="settings_emby_copy_from_main">Copy from Main</string>
+    <string name="settings_emby">Emby</string>
     <string name="settings_mdb_add_api_key_first">Add your MDBList API key below before turning ratings on.</string>
     <string name="settings_mdb_api_key_description">Get a key from https://mdblist.com/preferences and paste it here.</string>
     <string name="settings_mdb_api_key_label">API key</string>

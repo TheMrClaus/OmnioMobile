@@ -54,6 +54,8 @@ import com.nuvio.app.features.streams.StreamAutoPlaySelector
 import com.nuvio.app.features.streams.StreamItem
 import com.nuvio.app.features.streams.StreamLinkCacheRepository
 import com.nuvio.app.features.streams.StreamsUiState
+import com.nuvio.app.features.emby.EmbyResumeReconciler
+import com.nuvio.app.features.emby.EmbySessionService
 import com.nuvio.app.features.trakt.TraktScrobbleRepository
 import com.nuvio.app.features.watchprogress.WatchProgressClock
 import com.nuvio.app.features.watchprogress.WatchProgressPlaybackSession
@@ -137,6 +139,11 @@ fun PlayerScreen(
     providerAddonId: String? = null,
     initialPositionMs: Long = 0L,
     initialProgressFraction: Float? = null,
+    sourceProvider: String? = null,
+    providerItemId: String? = null,
+    providerMediaSourceId: String? = null,
+    providerRuntimeMs: Long? = null,
+    providerResumePositionMs: Long? = null,
 ) {
     LockPlayerToLandscape()
     EnterImmersivePlayerMode()
@@ -178,6 +185,14 @@ fun PlayerScreen(
         var activeStreamSubtitle by rememberSaveable { mutableStateOf(streamSubtitle) }
         var activeProviderName by rememberSaveable { mutableStateOf(providerName) }
         var activeProviderAddonId by rememberSaveable { mutableStateOf(providerAddonId) }
+        var activeSourceProvider by rememberSaveable { mutableStateOf(sourceProvider) }
+        var activeProviderItemId by rememberSaveable { mutableStateOf(providerItemId) }
+        var activeProviderMediaSourceId by rememberSaveable { mutableStateOf(providerMediaSourceId) }
+        var activeProviderRuntimeMs by rememberSaveable { mutableStateOf(providerRuntimeMs) }
+        var activeProviderResumePositionMs by rememberSaveable { mutableStateOf(providerResumePositionMs) }
+        val embySession = remember { EmbySessionService() }
+        var embySessionStarted by rememberSaveable(activeSourceUrl) { mutableStateOf(false) }
+        var embyResumeApplied by rememberSaveable(activeSourceUrl) { mutableStateOf(false) }
         var currentStreamBingeGroup by rememberSaveable { mutableStateOf(initialBingeGroup) }
         var activeSeasonNumber by rememberSaveable { mutableStateOf(seasonNumber) }
         var activeEpisodeNumber by rememberSaveable { mutableStateOf(episodeNumber) }
@@ -792,6 +807,14 @@ fun PlayerScreen(
             activeStreamSubtitle = stream.streamSubtitle
             activeProviderName = stream.addonName
             activeProviderAddonId = stream.addonId
+            embySession.reportStop(playbackSnapshot.positionMs)
+            embySessionStarted = false
+            embyResumeApplied = false
+            activeSourceProvider = stream.sourceProvider
+            activeProviderItemId = stream.providerItemId
+            activeProviderMediaSourceId = stream.providerMediaSourceId
+            activeProviderRuntimeMs = stream.providerRuntimeMs
+            activeProviderResumePositionMs = stream.providerResumePositionMs
             currentStreamBingeGroup = stream.behaviorHints.bingeGroup
             activeInitialPositionMs = currentPositionMs
             activeInitialProgressFraction = null
@@ -852,6 +875,14 @@ fun PlayerScreen(
             activeStreamSubtitle = stream.streamSubtitle
             activeProviderName = stream.addonName
             activeProviderAddonId = stream.addonId
+            embySession.reportStop(playbackSnapshot.positionMs)
+            embySessionStarted = false
+            embyResumeApplied = false
+            activeSourceProvider = stream.sourceProvider
+            activeProviderItemId = stream.providerItemId
+            activeProviderMediaSourceId = stream.providerMediaSourceId
+            activeProviderRuntimeMs = stream.providerRuntimeMs
+            activeProviderResumePositionMs = stream.providerResumePositionMs
             currentStreamBingeGroup = stream.behaviorHints.bingeGroup
             activeSeasonNumber = episode.season
             activeEpisodeNumber = episode.episode
@@ -900,6 +931,14 @@ fun PlayerScreen(
             activeStreamSubtitle = downloadItem.streamSubtitle
             activeProviderName = downloadItem.providerName.ifBlank { downloadedLabel }
             activeProviderAddonId = downloadItem.providerAddonId
+            embySession.reportStop(playbackSnapshot.positionMs)
+            embySessionStarted = false
+            embyResumeApplied = false
+            activeSourceProvider = null
+            activeProviderItemId = null
+            activeProviderMediaSourceId = null
+            activeProviderRuntimeMs = null
+            activeProviderResumePositionMs = null
             currentStreamBingeGroup = null
             activeSeasonNumber = episode.season
             activeEpisodeNumber = episode.episode
@@ -1133,6 +1172,26 @@ fun PlayerScreen(
             }
         }
 
+        LaunchedEffect(activeSourceProvider, activeProviderResumePositionMs, activeSourceUrl) {
+            if (embyResumeApplied) return@LaunchedEffect
+            if (activeSourceProvider != "emby") {
+                embyResumeApplied = true
+                return@LaunchedEffect
+            }
+            val decision = EmbyResumeReconciler.reconcile(
+                localPositionMs = activeInitialPositionMs.takeIf { it > 0L },
+                embyPositionMs = activeProviderResumePositionMs,
+            )
+            if (decision.source == EmbyResumeReconciler.ResumeSource.EMBY &&
+                decision.positionMs > 0L
+            ) {
+                activeInitialPositionMs = decision.positionMs
+                activeInitialProgressFraction = null
+                initialSeekApplied = false
+            }
+            embyResumeApplied = true
+        }
+
         LaunchedEffect(
             playerController,
             playerControllerSourceUrl,
@@ -1199,22 +1258,58 @@ fun PlayerScreen(
             if (playbackSnapshot.isEnded) {
                 hasSentCompletionScrobbleForCurrentItem = false
                 flushWatchProgress()
+                if (activeSourceProvider == "emby") {
+                    embySession.reportStop(playbackSnapshot.positionMs)
+                    embySessionStarted = false
+                }
                 previousIsPlaying = false
                 return@LaunchedEffect
             }
 
             if (previousIsPlaying && !playbackSnapshot.isPlaying) {
                 flushWatchProgress()
+                if (activeSourceProvider == "emby" && embySessionStarted) {
+                    scope.launch {
+                        embySession.reportProgress(
+                            positionMs = playbackSnapshot.positionMs,
+                            isPaused = true,
+                            force = true,
+                        )
+                    }
+                }
             }
 
             if (!previousIsPlaying && playbackSnapshot.isPlaying) {
                 emitTraktScrobbleStart()
+                if (activeSourceProvider == "emby") {
+                    val itemId = activeProviderItemId
+                    val mediaSourceId = activeProviderMediaSourceId
+                    if (itemId != null && mediaSourceId != null) {
+                        scope.launch {
+                            embySession.reportStart(
+                                itemId = itemId,
+                                mediaSourceId = mediaSourceId,
+                                positionMs = playbackSnapshot.positionMs,
+                            )
+                            embySessionStarted = true
+                        }
+                    }
+                }
             }
 
             previousIsPlaying = playbackSnapshot.isPlaying
 
             if (!playbackSnapshot.isPlaying) {
                 return@LaunchedEffect
+            }
+
+            if (activeSourceProvider == "emby" && embySessionStarted) {
+                scope.launch {
+                    embySession.reportProgress(
+                        positionMs = playbackSnapshot.positionMs,
+                        isPaused = false,
+                    )
+                }
             }
 
             val now = WatchProgressClock.nowEpochMs()
@@ -1351,6 +1446,7 @@ fun PlayerScreen(
 
         DisposableEffect(Unit) {
             onDispose {
+                embySession.reportStop(playbackSnapshot.positionMs)
                 PlayerStreamsRepository.clearAll()
             }
         }

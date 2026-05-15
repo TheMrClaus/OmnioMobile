@@ -51,6 +51,9 @@ import com.nuvio.app.features.mdblist.MdbListSettingsRepository
 import com.nuvio.app.features.notifications.EpisodeReleaseNotificationsRepository
 import com.nuvio.app.features.notifications.EpisodeReleaseNotificationsUiState
 import com.nuvio.app.features.player.PlayerSettingsRepository
+import com.nuvio.app.features.emby.EmbyAuthRepository
+import com.nuvio.app.features.emby.EmbyAuthUiState
+import com.nuvio.app.features.emby.embySettingsContent
 import com.nuvio.app.features.trakt.TraktAuthUiState
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktCommentsSettings
@@ -102,6 +105,10 @@ fun SettingsScreen(
         val traktAuthUiState by remember {
             TraktAuthRepository.ensureLoaded()
             TraktAuthRepository.uiState
+        }.collectAsStateWithLifecycle()
+        val embyAuthUiState by remember {
+            EmbyAuthRepository.ensureLoaded()
+            EmbyAuthRepository.uiState
         }.collectAsStateWithLifecycle()
         val traktCommentsEnabled by remember {
             TraktCommentsSettings.ensureLoaded()
@@ -188,6 +195,7 @@ fun SettingsScreen(
                 tmdbSettings = tmdbSettings,
                 mdbListSettings = mdbListSettings,
                 traktAuthUiState = traktAuthUiState,
+                embyAuthUiState = embyAuthUiState,
                 traktCommentsEnabled = traktCommentsEnabled,
                 homescreenHeroEnabled = homescreenSettingsUiState.heroEnabled,
                 homescreenItems = homescreenSettingsUiState.items,
@@ -228,6 +236,7 @@ fun SettingsScreen(
                 tmdbSettings = tmdbSettings,
                 mdbListSettings = mdbListSettings,
                 traktAuthUiState = traktAuthUiState,
+                embyAuthUiState = embyAuthUiState,
                 traktCommentsEnabled = traktCommentsEnabled,
                 homescreenHeroEnabled = homescreenSettingsUiState.heroEnabled,
                 homescreenItems = homescreenSettingsUiState.items,
@@ -278,6 +287,7 @@ private fun MobileSettingsScreen(
     tmdbSettings: TmdbSettings,
     mdbListSettings: MdbListSettings,
     traktAuthUiState: TraktAuthUiState,
+    embyAuthUiState: EmbyAuthUiState,
     traktCommentsEnabled: Boolean,
     homescreenHeroEnabled: Boolean,
     homescreenItems: List<HomeCatalogSettingsItem>,
@@ -393,6 +403,7 @@ private fun MobileSettingsScreen(
                 isTablet = false,
                 onTmdbClick = { onPageChange(SettingsPage.TmdbEnrichment) },
                 onMdbListClick = { onPageChange(SettingsPage.MdbListRatings) },
+                onEmbyClick = { onPageChange(SettingsPage.EmbyAuthentication) },
             )
             SettingsPage.TmdbEnrichment -> tmdbSettingsContent(
                 isTablet = false,
@@ -401,6 +412,10 @@ private fun MobileSettingsScreen(
             SettingsPage.MdbListRatings -> mdbListSettingsContent(
                 isTablet = false,
                 settings = mdbListSettings,
+            )
+            SettingsPage.EmbyAuthentication -> embySettingsContent(
+                isTablet = false,
+                uiState = embyAuthUiState,
             )
             SettingsPage.TraktAuthentication -> traktSettingsContent(
                 isTablet = false,
@@ -440,6 +455,7 @@ private fun TabletSettingsScreen(
     tmdbSettings: TmdbSettings,
     mdbListSettings: MdbListSettings,
     traktAuthUiState: TraktAuthUiState,
+    embyAuthUiState: EmbyAuthUiState,
     traktCommentsEnabled: Boolean,
     homescreenHeroEnabled: Boolean,
     homescreenItems: List<HomeCatalogSettingsItem>,
@@ -623,6 +639,7 @@ private fun TabletSettingsScreen(
                     isTablet = true,
                     onTmdbClick = { onPageChange(SettingsPage.TmdbEnrichment) },
                     onMdbListClick = { onPageChange(SettingsPage.MdbListRatings) },
+                    onEmbyClick = { onPageChange(SettingsPage.EmbyAuthentication) },
                 )
                 SettingsPage.TmdbEnrichment -> tmdbSettingsContent(
                     isTablet = true,
@@ -631,6 +648,10 @@ private fun TabletSettingsScreen(
                 SettingsPage.MdbListRatings -> mdbListSettingsContent(
                     isTablet = true,
                     settings = mdbListSettings,
+                )
+                SettingsPage.EmbyAuthentication -> embySettingsContent(
+                    isTablet = true,
+                    uiState = embyAuthUiState,
                 )
                 SettingsPage.TraktAuthentication -> traktSettingsContent(
                     isTablet = true,
