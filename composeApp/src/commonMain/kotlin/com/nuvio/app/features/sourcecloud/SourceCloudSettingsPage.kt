@@ -139,9 +139,13 @@ internal fun LazyListScope.sourceCloudSettingsContent(
                             stringResource(Res.string.settings_source_cloud_service_disconnected)
                         },
                         connected = connected,
-                        enabled = !uiState.isLoading,
+                        enabled = !uiState.isLoading && !uiState.isAdvancedConfigLoading,
                         onToggle = { newConnected ->
-                            SourceCloudRepository.setServiceConnected(service, newConnected)
+                            if (newConnected) {
+                                SourceCloudRepository.requestAdvancedConfigSession(autoOpen = true)
+                            } else {
+                                SourceCloudRepository.setServiceConnected(service, false)
+                            }
                         },
                     )
                 }
@@ -434,7 +438,7 @@ private fun SourceCloudAdvancedCard(
                         runCatching { uriHandler.openUri(session.url) }
                             .onFailure { /* swallow — user can copy manually */ }
                     } else {
-                        SourceCloudRepository.requestAdvancedConfigSession()
+                        SourceCloudRepository.requestAdvancedConfigSession(autoOpen = true)
                     }
                 },
                 enabled = !isLoading && (session != null || advancedAvailable),

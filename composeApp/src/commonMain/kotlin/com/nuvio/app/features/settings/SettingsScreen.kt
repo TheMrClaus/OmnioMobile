@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -117,6 +118,17 @@ fun SettingsScreen(
             SourceCloudRepository.ensureLoaded()
             SourceCloudRepository.uiState
         }.collectAsStateWithLifecycle()
+        val uriHandler = LocalUriHandler.current
+        LaunchedEffect(
+            sourceCloudUiState.pendingAdvancedSessionOpen,
+            sourceCloudUiState.advancedConfigSession?.url,
+        ) {
+            val session = sourceCloudUiState.advancedConfigSession
+            if (sourceCloudUiState.pendingAdvancedSessionOpen && session != null) {
+                runCatching { uriHandler.openUri(session.url) }
+                SourceCloudRepository.consumePendingAdvancedSessionOpen()
+            }
+        }
         val traktCommentsEnabled by remember {
             TraktCommentsSettings.ensureLoaded()
             TraktCommentsSettings.enabled

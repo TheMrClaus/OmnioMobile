@@ -81,12 +81,13 @@ internal object SourceCloudRepository {
         scope.launch { refreshFromNetwork() }
     }
 
-    fun requestAdvancedConfigSession() {
+    fun requestAdvancedConfigSession(autoOpen: Boolean = false) {
         ensureLoaded()
         _uiState.update {
             it.copy(
                 isAdvancedConfigLoading = true,
                 advancedConfigSession = null,
+                pendingAdvancedSessionOpen = autoOpen,
                 errorMessage = null,
             )
         }
@@ -106,6 +107,7 @@ internal object SourceCloudRepository {
                 it.copy(
                     isAdvancedConfigLoading = false,
                     advancedConfigSession = session,
+                    pendingAdvancedSessionOpen = autoOpen && session != null,
                     errorMessage = if (session == null) {
                         SOURCE_CLOUD_ADVANCED_UNAVAILABLE_MESSAGE
                     } else {
@@ -114,6 +116,10 @@ internal object SourceCloudRepository {
                 )
             }
         }
+    }
+
+    fun consumePendingAdvancedSessionOpen() {
+        _uiState.update { it.copy(pendingAdvancedSessionOpen = false) }
     }
 
     fun resetConfig() {
@@ -152,7 +158,12 @@ internal object SourceCloudRepository {
     }
 
     fun consumeAdvancedSession() {
-        _uiState.update { it.copy(advancedConfigSession = null) }
+        _uiState.update {
+            it.copy(
+                advancedConfigSession = null,
+                pendingAdvancedSessionOpen = false,
+            )
+        }
     }
 
     /** Resolve a stream from Source Cloud, if enabled and at least one service is connected. */
@@ -263,6 +274,7 @@ data class SourceCloudUiState(
     val isAdvancedConfigLoading: Boolean = false,
     val status: SourceCloudStatus? = null,
     val advancedConfigSession: SourceCloudAdvancedConfigSession? = null,
+    val pendingAdvancedSessionOpen: Boolean = false,
     val errorMessage: String? = null,
     val enabled: Boolean = true,
     val connectedServiceKeys: Set<String> = emptySet(),
