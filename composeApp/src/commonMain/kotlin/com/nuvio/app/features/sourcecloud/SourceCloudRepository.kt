@@ -278,19 +278,19 @@ internal object SourceCloudRepository {
         }
     }
 
-    /** Resolve a stream from Source Cloud, if enabled and at least one service is connected. */
-    suspend fun resolveStream(request: SourceCloudSearchRequest): SourceCloudResolvedStream? {
+    /** Resolve all streams from Source Cloud (already ranked + deduped by AIOStreams). */
+    suspend fun resolveStreams(request: SourceCloudSearchRequest): List<SourceCloudResolvedStream> {
         ensureLoaded()
-        if (!SourceCloudApiClient.baseUrlConfigured) return null
+        if (!SourceCloudApiClient.baseUrlConfigured) return emptyList()
         val current = settings
-        if (!current.enabled || !current.hasConnectedService) return null
+        if (!current.enabled || !current.hasConnectedService) return emptyList()
         val response = runCatching { SourceCloudApiClient.search(request, activeProfileId()) }
             .onFailure { error ->
                 if (error is CancellationException) throw error
                 log.w { "Search failed: ${error.message}" }
             }
-            .getOrNull() ?: return null
-        return response.streams.orEmpty().firstNotNullOfOrNull { dto ->
+            .getOrNull() ?: return emptyList()
+        return response.streams.orEmpty().mapNotNull { dto ->
             val resolved = dto.toDomain()
             if (resolved.url.isNullOrBlank() &&
                 resolved.infoHash.isNullOrBlank() &&

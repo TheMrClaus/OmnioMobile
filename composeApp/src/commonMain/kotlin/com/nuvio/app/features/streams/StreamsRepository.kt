@@ -289,7 +289,7 @@ object StreamsRepository {
             if (sourceCloudConfigured) {
                 launch {
                     val group = runCatching {
-                        SourceCloudRepository.resolveStream(
+                        SourceCloudRepository.resolveStreams(
                             SourceCloudSearchRequest(
                                 type = type,
                                 videoId = videoId,
@@ -299,21 +299,12 @@ object StreamsRepository {
                         )
                     }.fold(
                         onSuccess = { resolved ->
-                            if (resolved == null) {
-                                AddonStreamGroup(
-                                    addonName = SOURCE_CLOUD_GROUP_NAME,
-                                    addonId = SOURCE_CLOUD_GROUP_ID,
-                                    streams = emptyList(),
-                                    isLoading = false,
-                                )
-                            } else {
-                                AddonStreamGroup(
-                                    addonName = SOURCE_CLOUD_GROUP_NAME,
-                                    addonId = SOURCE_CLOUD_GROUP_ID,
-                                    streams = listOf(resolved.toStreamItem()),
-                                    isLoading = false,
-                                )
-                            }
+                            AddonStreamGroup(
+                                addonName = SOURCE_CLOUD_GROUP_NAME,
+                                addonId = SOURCE_CLOUD_GROUP_ID,
+                                streams = resolved.map { it.toStreamItem() },
+                                isLoading = false,
+                            )
                         },
                         onFailure = { err ->
                             log.w(err) { "Failed to resolve Source Cloud stream" }
