@@ -19,6 +19,19 @@ internal data class SourceCloudProfileScopedRequestDto(
 )
 
 @Serializable
+internal data class SourceCloudConnectServiceRequestDto(
+    val profileId: Int,
+    val service: String,
+    val apiKey: String,
+)
+
+@Serializable
+internal data class SourceCloudDisconnectServiceRequestDto(
+    val profileId: Int,
+    val service: String,
+)
+
+@Serializable
 internal data class SourceCloudStatusResponseDto(
     val config: SourceCloudConfigStateDto? = null,
     val services: List<SourceCloudServiceStatusDto>? = null,

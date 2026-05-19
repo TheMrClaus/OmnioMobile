@@ -82,6 +82,117 @@ internal object SourceCloudRepository {
         scope.launch { refreshFromNetwork() }
     }
 
+    fun beginConnectService(service: SourceCloudService) {
+        ensureLoaded()
+        _uiState.update {
+            it.copy(
+                connectServiceTarget = service,
+                connectServiceError = null,
+                isConnectServiceSubmitting = false,
+            )
+        }
+    }
+
+    fun cancelConnectService() {
+        _uiState.update {
+            it.copy(
+                connectServiceTarget = null,
+                connectServiceError = null,
+                isConnectServiceSubmitting = false,
+            )
+        }
+    }
+
+    fun submitConnectService(service: SourceCloudService, apiKey: String) {
+        ensureLoaded()
+        val trimmedKey = apiKey.trim()
+        if (trimmedKey.isEmpty()) {
+            _uiState.update { it.copy(connectServiceError = "API key is required") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                isConnectServiceSubmitting = true,
+                connectServiceError = null,
+            )
+        }
+        scope.launch {
+            val response = runCatching {
+                if (!SourceCloudApiClient.baseUrlConfigured) null
+                else SourceCloudApiClient.connectService(activeProfileId(), service, trimmedKey)
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                log.w { "Connect service failed: ${error.message}" }
+            }.getOrNull()
+
+            if (response == null) {
+                _uiState.update {
+                    it.copy(
+                        isConnectServiceSubmitting = false,
+                        connectServiceError = "Couldn't reach Source Cloud. Try again.",
+                    )
+                }
+                return@launch
+            }
+
+            // Update local connected-set so resolveStream() can short-circuit.
+            val newSet = settings.connectedServices + service
+            settings = settings.copy(connectedServices = newSet)
+            persist()
+
+            val newStatus = response.toDomain(
+                enabled = settings.enabled,
+                baseUrlConfigured = true,
+            )
+            statusCache = newStatus
+            _uiState.update {
+                it.copy(
+                    isConnectServiceSubmitting = false,
+                    connectServiceTarget = null,
+                    connectServiceError = null,
+                    status = newStatus,
+                    connectedServiceKeys = settings.connectedServices.map { it.key }.toSet(),
+                )
+            }
+        }
+    }
+
+    fun disconnectService(service: SourceCloudService) {
+        ensureLoaded()
+        _uiState.update { it.copy(isLoading = true) }
+        scope.launch {
+            val response = runCatching {
+                if (!SourceCloudApiClient.baseUrlConfigured) null
+                else SourceCloudApiClient.disconnectService(activeProfileId(), service)
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                log.w { "Disconnect service failed: ${error.message}" }
+            }.getOrNull()
+
+            // Locally drop the service regardless of network result — the user
+            // wanted it off; if the backend write failed the next refresh
+            // re-syncs anyway.
+            val newSet = settings.connectedServices - service
+            settings = settings.copy(connectedServices = newSet)
+            persist()
+
+            val newStatus = response?.toDomain(
+                enabled = settings.enabled,
+                baseUrlConfigured = true,
+            )
+            if (newStatus != null) statusCache = newStatus
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    status = newStatus ?: it.status,
+                    connectedServiceKeys = settings.connectedServices.map { it.key }.toSet(),
+                    errorMessage = if (response == null) "Disconnect didn't reach Source Cloud — retry to sync" else null,
+                )
+            }
+        }
+    }
+
     fun requestAdvancedConfigSession(autoOpen: Boolean = false) {
         ensureLoaded()
         _uiState.update {
@@ -281,4 +392,7 @@ data class SourceCloudUiState(
     val errorMessage: String? = null,
     val enabled: Boolean = true,
     val connectedServiceKeys: Set<String> = emptySet(),
+    val connectServiceTarget: SourceCloudService? = null,
+    val isConnectServiceSubmitting: Boolean = false,
+    val connectServiceError: String? = null,
 )

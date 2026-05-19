@@ -62,6 +62,38 @@ internal object SourceCloudApiClient {
         return decodeOrNull(response)
     }
 
+    suspend fun connectService(
+        profileId: Int,
+        service: SourceCloudService,
+        apiKey: String,
+    ): SourceCloudStatusResponseDto? {
+        val body = json.encodeToString(
+            SourceCloudConnectServiceRequestDto(
+                profileId = profileId,
+                service = service.key,
+                apiKey = apiKey,
+            ),
+        )
+        val response = request(method = "POST", function = "source-cloud-connect-service", body = body)
+            ?: return null
+        return decodeOrNull(response)
+    }
+
+    suspend fun disconnectService(
+        profileId: Int,
+        service: SourceCloudService,
+    ): SourceCloudStatusResponseDto? {
+        val body = json.encodeToString(
+            SourceCloudDisconnectServiceRequestDto(
+                profileId = profileId,
+                service = service.key,
+            ),
+        )
+        val response = request(method = "POST", function = "source-cloud-disconnect-service", body = body)
+            ?: return null
+        return decodeOrNull(response)
+    }
+
     private suspend fun request(
         method: String,
         function: String,

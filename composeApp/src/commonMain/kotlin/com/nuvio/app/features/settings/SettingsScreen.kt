@@ -55,6 +55,7 @@ import com.nuvio.app.features.player.PlayerSettingsRepository
 import com.nuvio.app.features.emby.EmbyAuthRepository
 import com.nuvio.app.features.emby.EmbyAuthUiState
 import com.nuvio.app.features.emby.embySettingsContent
+import com.nuvio.app.features.sourcecloud.SourceCloudConnectServiceDialog
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
 import com.nuvio.app.features.sourcecloud.SourceCloudUiState
 import com.nuvio.app.features.sourcecloud.sourceCloudSettingsContent
@@ -129,6 +130,7 @@ fun SettingsScreen(
                 SourceCloudRepository.consumePendingAdvancedSessionOpen()
             }
         }
+        SourceCloudConnectServiceDialog(uiState = sourceCloudUiState)
         val traktCommentsEnabled by remember {
             TraktCommentsSettings.ensureLoaded()
             TraktCommentsSettings.enabled

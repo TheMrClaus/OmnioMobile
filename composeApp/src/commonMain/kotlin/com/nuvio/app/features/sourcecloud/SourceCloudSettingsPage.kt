@@ -7,16 +7,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.features.settings.SettingsGroup
 import com.nuvio.app.features.settings.SettingsGroupDivider
@@ -139,12 +148,12 @@ internal fun LazyListScope.sourceCloudSettingsContent(
                             stringResource(Res.string.settings_source_cloud_service_disconnected)
                         },
                         connected = connected,
-                        enabled = !uiState.isLoading && !uiState.isAdvancedConfigLoading,
+                        enabled = !uiState.isLoading && !uiState.isConnectServiceSubmitting,
                         onToggle = { newConnected ->
                             if (newConnected) {
-                                SourceCloudRepository.requestAdvancedConfigSession(autoOpen = true)
+                                SourceCloudRepository.beginConnectService(service)
                             } else {
-                                SourceCloudRepository.setServiceConnected(service, false)
+                                SourceCloudRepository.disconnectService(service)
                             }
                         },
                     )
@@ -468,4 +477,71 @@ private fun SourceCloudAdvancedCard(
 private enum class SourceCloudInfoTone {
     Neutral,
     Error,
+}
+
+@Composable
+fun SourceCloudConnectServiceDialog(uiState: SourceCloudUiState) {
+    val service = uiState.connectServiceTarget ?: return
+    var apiKey by remember(service) { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (!uiState.isConnectServiceSubmitting) {
+                SourceCloudRepository.cancelConnectService()
+            }
+        },
+        title = {
+            Text(text = "Connect ${service.displayName}")
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Paste your ${service.displayName} API key. It's stored encrypted in Omnio Source Cloud and used to provision your private AIOStreams config.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it },
+                    label = { Text("API key") },
+                    singleLine = true,
+                    enabled = !uiState.isConnectServiceSubmitting,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                uiState.connectServiceError?.takeIf { it.isNotBlank() }?.let { msg ->
+                    Text(
+                        text = msg,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { SourceCloudRepository.submitConnectService(service, apiKey) },
+                enabled = !uiState.isConnectServiceSubmitting && apiKey.isNotBlank(),
+            ) {
+                if (uiState.isConnectServiceSubmitting) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp),
+                    )
+                } else {
+                    Text("Connect")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { SourceCloudRepository.cancelConnectService() },
+                enabled = !uiState.isConnectServiceSubmitting,
+            ) {
+                Text("Cancel")
+            }
+        },
+    )
 }
