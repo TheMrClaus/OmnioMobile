@@ -27,26 +27,38 @@ internal object SourceCloudApiClient {
     val baseUrlConfigured: Boolean
         get() = SupabaseConfig.URL.isNotBlank() && SupabaseConfig.ANON_KEY.isNotBlank()
 
-    suspend fun status(): SourceCloudStatusResponseDto? {
-        val response = request(method = "GET", function = "source-cloud-status") ?: return null
+    suspend fun status(profileId: Int): SourceCloudStatusResponseDto? {
+        val response = request(
+            method = "GET",
+            function = "source-cloud-status",
+            query = mapOf("profileId" to profileId.toString()),
+        ) ?: return null
         return decodeOrNull(response)
     }
 
-    suspend fun search(searchRequest: SourceCloudSearchRequest): SourceCloudSearchResponseDto? {
-        val body = json.encodeToString(searchRequest.toDto())
+    suspend fun search(
+        searchRequest: SourceCloudSearchRequest,
+        profileId: Int,
+    ): SourceCloudSearchResponseDto? {
+        val body = json.encodeToString(searchRequest.toDto(profileId))
         val response = request(method = "POST", function = "source-cloud-search", body = body)
             ?: return null
         return decodeOrNull(response)
     }
 
-    suspend fun createAdvancedConfigSession(): SourceCloudAdvancedConfigSessionResponseDto? {
-        val response = request(method = "POST", function = "source-cloud-advanced-session")
+    suspend fun createAdvancedConfigSession(
+        profileId: Int,
+    ): SourceCloudAdvancedConfigSessionResponseDto? {
+        val body = json.encodeToString(SourceCloudProfileScopedRequestDto(profileId))
+        val response = request(method = "POST", function = "source-cloud-advanced-session", body = body)
             ?: return null
         return decodeOrNull(response)
     }
 
-    suspend fun resetConfig(): SourceCloudStatusResponseDto? {
-        val response = request(method = "POST", function = "source-cloud-reset") ?: return null
+    suspend fun resetConfig(profileId: Int): SourceCloudStatusResponseDto? {
+        val body = json.encodeToString(SourceCloudProfileScopedRequestDto(profileId))
+        val response = request(method = "POST", function = "source-cloud-reset", body = body)
+            ?: return null
         return decodeOrNull(response)
     }
 
@@ -54,9 +66,15 @@ internal object SourceCloudApiClient {
         method: String,
         function: String,
         body: String = "",
+        query: Map<String, String> = emptyMap(),
     ): RawHttpResponse? {
         if (!baseUrlConfigured) return null
-        val url = "${SupabaseConfig.URL.trimEnd('/')}/functions/v1/$function"
+        val base = "${SupabaseConfig.URL.trimEnd('/')}/functions/v1/$function"
+        val url = if (query.isEmpty()) base else {
+            base + query.entries.joinToString(prefix = "?", separator = "&") { (k, v) ->
+                "${encodeQuery(k)}=${encodeQuery(v)}"
+            }
+        }
         val anonKey = SupabaseConfig.ANON_KEY
         val sessionToken = runCatching {
             SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
@@ -85,5 +103,23 @@ internal object SourceCloudApiClient {
         val raw = response.body
         if (raw.isBlank()) return null
         return runCatching { json.decodeFromString<T>(raw) }.getOrNull()
+    }
+
+    private fun encodeQuery(value: String): String {
+        val builder = StringBuilder(value.length)
+        for (c in value) {
+            when {
+                c.isLetterOrDigit() || c == '-' || c == '_' || c == '.' || c == '~' -> builder.append(c)
+                else -> {
+                    val bytes = c.toString().encodeToByteArray()
+                    for (b in bytes) {
+                        builder.append('%')
+                        builder.append(((b.toInt() and 0xFF) shr 4).toString(16).uppercase())
+                        builder.append((b.toInt() and 0x0F).toString(16).uppercase())
+                    }
+                }
+            }
+        }
+        return builder.toString()
     }
 }

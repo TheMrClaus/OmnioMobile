@@ -1,6 +1,7 @@
 package com.nuvio.app.features.sourcecloud
 
 import co.touchlab.kermit.Logger
+import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +97,7 @@ internal object SourceCloudRepository {
                 if (!SourceCloudApiClient.baseUrlConfigured) {
                     null
                 } else {
-                    SourceCloudApiClient.createAdvancedConfigSession()?.toDomain()
+                    SourceCloudApiClient.createAdvancedConfigSession(activeProfileId())?.toDomain()
                 }
             }.onFailure { error ->
                 if (error is CancellationException) throw error
@@ -136,7 +137,7 @@ internal object SourceCloudRepository {
                 if (!SourceCloudApiClient.baseUrlConfigured) {
                     offlineStatus(false)
                 } else {
-                    SourceCloudApiClient.resetConfig()?.toDomain(
+                    SourceCloudApiClient.resetConfig(activeProfileId())?.toDomain(
                         enabled = settings.enabled,
                         baseUrlConfigured = true,
                     ) ?: offlineStatus(true)
@@ -172,7 +173,7 @@ internal object SourceCloudRepository {
         if (!SourceCloudApiClient.baseUrlConfigured) return null
         val current = settings
         if (!current.enabled || !current.hasConnectedService) return null
-        val response = runCatching { SourceCloudApiClient.search(request) }
+        val response = runCatching { SourceCloudApiClient.search(request, activeProfileId()) }
             .onFailure { error ->
                 if (error is CancellationException) throw error
                 log.w { "Search failed: ${error.message}" }
@@ -201,7 +202,7 @@ internal object SourceCloudRepository {
         val status = if (!baseConfigured) {
             offlineStatus(false)
         } else {
-            runCatching { SourceCloudApiClient.status() }
+            runCatching { SourceCloudApiClient.status(activeProfileId()) }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     log.w { "Status fetch failed: ${error.message}" }
@@ -250,6 +251,8 @@ internal object SourceCloudRepository {
             )
         }
     }
+
+    private fun activeProfileId(): Int = ProfileRepository.activeProfileId
 
     private fun offlineStatus(baseUrlConfigured: Boolean): SourceCloudStatus = SourceCloudStatus(
         enabled = settings.enabled,

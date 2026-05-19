@@ -5,11 +5,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class SourceCloudSearchRequestDto(
+    val profileId: Int,
     val type: String,
     val videoId: String,
     val tmdbId: String? = null,
     val season: Int? = null,
     val episode: Int? = null,
+)
+
+@Serializable
+internal data class SourceCloudProfileScopedRequestDto(
+    val profileId: Int,
 )
 
 @Serializable
@@ -111,8 +117,9 @@ internal data class SourceCloudSettingsPayload(
     }
 }
 
-internal fun SourceCloudSearchRequest.toDto(): SourceCloudSearchRequestDto =
+internal fun SourceCloudSearchRequest.toDto(profileId: Int): SourceCloudSearchRequestDto =
     SourceCloudSearchRequestDto(
+        profileId = profileId,
         type = type,
         videoId = videoId,
         tmdbId = tmdbId,
