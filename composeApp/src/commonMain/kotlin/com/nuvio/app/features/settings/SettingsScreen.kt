@@ -59,6 +59,8 @@ import com.nuvio.app.features.sourcecloud.SourceCloudConnectServiceDialog
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
 import com.nuvio.app.features.sourcecloud.SourceCloudUiState
 import com.nuvio.app.features.sourcecloud.sourceCloudSettingsContent
+import com.nuvio.app.features.streams.prefs.StreamPreferences
+import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
 import com.nuvio.app.features.trakt.TraktAuthUiState
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktCommentsSettings
@@ -118,6 +120,10 @@ fun SettingsScreen(
         val sourceCloudUiState by remember {
             SourceCloudRepository.ensureLoaded()
             SourceCloudRepository.uiState
+        }.collectAsStateWithLifecycle()
+        val streamPrefsUiState by remember {
+            StreamPreferencesRepository.ensureLoaded()
+            StreamPreferencesRepository.uiState
         }.collectAsStateWithLifecycle()
         val uriHandler = LocalUriHandler.current
         LaunchedEffect(
@@ -224,6 +230,7 @@ fun SettingsScreen(
                 metaScreenSettingsUiState = metaScreenSettingsUiState,
                 continueWatchingPreferencesUiState = continueWatchingPreferencesUiState,
                 posterCardStyleUiState = posterCardStyleUiState,
+                streamPrefsUiState = streamPrefsUiState,
                 onSwitchProfile = onSwitchProfile,
                 onDownloadsClick = onDownloadsClick,
                 onSupportersContributorsClick = onSupportersContributorsClick,
@@ -266,6 +273,7 @@ fun SettingsScreen(
                 metaScreenSettingsUiState = metaScreenSettingsUiState,
                 continueWatchingPreferencesUiState = continueWatchingPreferencesUiState,
                 posterCardStyleUiState = posterCardStyleUiState,
+                streamPrefsUiState = streamPrefsUiState,
                 onSwitchProfile = onSwitchProfile,
                 onHomescreenClick = onHomescreenClick,
                 onMetaScreenClick = onMetaScreenClick,
@@ -318,6 +326,7 @@ private fun MobileSettingsScreen(
     metaScreenSettingsUiState: MetaScreenSettingsUiState,
     continueWatchingPreferencesUiState: ContinueWatchingPreferencesUiState,
     posterCardStyleUiState: PosterCardStyleUiState,
+    streamPrefsUiState: StreamPreferences,
     onSwitchProfile: (() -> Unit)? = null,
     onHomescreenClick: () -> Unit = {},
     onMetaScreenClick: () -> Unit = {},
@@ -452,6 +461,10 @@ private fun MobileSettingsScreen(
                 commentsEnabled = traktCommentsEnabled,
                 onCommentsEnabledChange = TraktCommentsSettings::setEnabled,
             )
+            SettingsPage.StreamPreferences -> streamPreferencesSettingsContent(
+                isTablet = false,
+                prefs = streamPrefsUiState,
+            )
         }
     }
 }
@@ -492,6 +505,7 @@ private fun TabletSettingsScreen(
     metaScreenSettingsUiState: MetaScreenSettingsUiState,
     continueWatchingPreferencesUiState: ContinueWatchingPreferencesUiState,
     posterCardStyleUiState: PosterCardStyleUiState,
+    streamPrefsUiState: StreamPreferences,
     onSwitchProfile: (() -> Unit)? = null,
     onDownloadsClick: () -> Unit = {},
     onSupportersContributorsClick: () -> Unit = {},
@@ -693,6 +707,10 @@ private fun TabletSettingsScreen(
                     uiState = traktAuthUiState,
                     commentsEnabled = traktCommentsEnabled,
                     onCommentsEnabledChange = TraktCommentsSettings::setEnabled,
+                )
+                SettingsPage.StreamPreferences -> streamPreferencesSettingsContent(
+                    isTablet = true,
+                    prefs = streamPrefsUiState,
                 )
             }
         }

@@ -22,4 +22,16 @@ actual object WatchProgressStorage {
             ?.putString("${payloadKey}_$profileId", payload)
             ?.apply()
     }
+
+    actual fun loadLastSuccessfulPushMs(profileId: Int): Long =
+        preferences?.getLong(pushMsKey(profileId), 0L) ?: 0L
+
+    actual fun saveLastSuccessfulPushMs(profileId: Int, value: Long) {
+        preferences
+            ?.edit()
+            ?.putLong(pushMsKey(profileId), value)
+            ?.apply()
+    }
+
+    private fun pushMsKey(profileId: Int) = "watch_progress_last_successful_push_ms_$profileId"
 }

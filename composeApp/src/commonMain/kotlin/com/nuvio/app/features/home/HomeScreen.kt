@@ -194,7 +194,11 @@ fun HomeScreen(
         if (liveNextUpItems.isNotEmpty()) {
             liveNextUpItems.mapValues { (contentId, pair) ->
                 val cachedItem = cachedNextUpItems[contentId]?.second
-                pair.first to pair.second.withFallbackMetadata(cachedItem)
+                val safeCachedItem = if (cachedItem != null &&
+                    cachedItem.seasonNumber == pair.second.seasonNumber &&
+                    cachedItem.episodeNumber == pair.second.episodeNumber
+                ) cachedItem else null
+                pair.first to pair.second.withFallbackMetadata(safeCachedItem)
             }
         } else {
             cachedNextUpItems

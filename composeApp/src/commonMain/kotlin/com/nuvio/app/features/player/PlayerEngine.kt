@@ -60,6 +60,7 @@ expect fun PlatformPlayerSurface(
     playWhenReady: Boolean = true,
     resizeMode: PlayerResizeMode = PlayerResizeMode.Fit,
     useNativeController: Boolean = false,
+    forceHighestBitrate: Boolean = false,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
     onError: (String?) -> Unit,

@@ -747,5 +747,6 @@ private fun SourceCloudResolvedStream.toStreamItem(): StreamItem {
         addonId = SOURCE_CLOUD_ADDON_ID,
         behaviorHints = behaviorHints,
         sourceProvider = SOURCE_CLOUD_PROVIDER,
+        sourceCloudMetadata = metadata,
     )
 }

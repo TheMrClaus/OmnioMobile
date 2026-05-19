@@ -21,6 +21,7 @@ import nuvio.composeapp.generated.resources.compose_settings_page_mdblist_rating
 import nuvio.composeapp.generated.resources.compose_settings_page_meta_screen
 import nuvio.composeapp.generated.resources.compose_settings_page_notifications
 import nuvio.composeapp.generated.resources.compose_settings_page_playback
+import nuvio.composeapp.generated.resources.settings_stream_prefs
 import nuvio.composeapp.generated.resources.compose_settings_page_plugins
 import nuvio.composeapp.generated.resources.compose_settings_page_poster_customization
 import nuvio.composeapp.generated.resources.compose_settings_page_root
@@ -64,6 +65,11 @@ internal enum class SettingsPage(
         titleRes = Res.string.compose_settings_page_playback,
         category = SettingsCategory.General,
         parentPage = Root,
+    ),
+    StreamPreferences(
+        titleRes = Res.string.settings_stream_prefs,
+        category = SettingsCategory.General,
+        parentPage = Playback,
     ),
     Appearance(
         titleRes = Res.string.compose_settings_page_appearance,

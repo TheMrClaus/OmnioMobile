@@ -23,6 +23,7 @@ import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.emby.EmbyAuthRepository
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
+import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
 import com.nuvio.app.features.tmdb.TmdbSettingsRepository
 import com.nuvio.app.features.watched.WatchedRepository
 import com.nuvio.app.features.watchprogress.ContinueWatchingPreferencesRepository
@@ -194,6 +195,7 @@ object ProfileRepository {
         TraktAuthRepository.onProfileChanged()
         EmbyAuthRepository.onProfileChanged()
         SourceCloudRepository.onProfileChanged()
+        StreamPreferencesRepository.onProfileChanged()
         SearchRepository.reset()
         SearchHistoryRepository.onProfileChanged()
         CollectionRepository.onProfileChanged()

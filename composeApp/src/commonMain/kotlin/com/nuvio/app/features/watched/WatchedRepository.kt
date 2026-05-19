@@ -85,13 +85,27 @@ object WatchedRepository {
                 profileId = profileId,
                 pageSize = watchedItemsPageSize,
             )
+            val lastPushMs = WatchedStorage.loadLastSuccessfulPushMs(profileId)
 
-            itemsByKey = serverItems
+            val merged = serverItems
                 .associateBy { watchedItemKey(it.type, it.id, it.season, it.episode) }
                 .toMutableMap()
+
+            val preserved = itemsByKey.values.filter { local ->
+                watchedItemKey(local.type, local.id, local.season, local.episode) !in merged &&
+                    local.markedAtEpochMs > lastPushMs
+            }
+            preserved.forEach { merged[watchedItemKey(it.type, it.id, it.season, it.episode)] = it }
+
+            itemsByKey = merged
             hasLoaded = true
             publish()
             persist()
+            WatchedStorage.saveLastSuccessfulPushMs(profileId, WatchedClock.nowEpochMs())
+
+            if (preserved.isNotEmpty()) {
+                pushMarksToServer(preserved)
+            }
         }.onFailure { e ->
             log.e(e) { "Failed to pull watched items from server" }
         }
@@ -204,6 +218,7 @@ object WatchedRepository {
                 if (items.isEmpty()) return@runCatching
                 val profileId = ProfileRepository.activeProfileId
                 activeSyncAdapter().push(profileId = profileId, items = items)
+                WatchedStorage.saveLastSuccessfulPushMs(profileId, WatchedClock.nowEpochMs())
             }.onFailure { e ->
                 log.e(e) { "Failed to push watched items" }
             }

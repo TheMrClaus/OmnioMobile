@@ -1,5 +1,6 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.features.sourcecloud.SourceCloudStreamMetadata
 import kotlinx.coroutines.runBlocking
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
@@ -25,6 +26,8 @@ data class StreamItem(
     val providerRuntimeMs: Long? = null,
     /** Provider-reported resume position in milliseconds (e.g. Emby UserData.PlaybackPositionTicks). */
     val providerResumePositionMs: Long? = null,
+    /** Source Cloud metadata for stream preference filtering and sorting. */
+    val sourceCloudMetadata: SourceCloudStreamMetadata? = null,
 ) {
     val streamLabel: String
         get() = name ?: runBlocking { getString(Res.string.stream_default_name) }

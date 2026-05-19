@@ -2,11 +2,15 @@ package com.nuvio.app.features.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -30,6 +34,11 @@ import nuvio.composeapp.generated.resources.settings_tmdb_enable_enrichment
 import nuvio.composeapp.generated.resources.settings_tmdb_enable_enrichment_description
 import nuvio.composeapp.generated.resources.settings_tmdb_enter_api_key
 import nuvio.composeapp.generated.resources.settings_tmdb_language_code_label
+import nuvio.composeapp.generated.resources.settings_tmdb_language_en_au
+import nuvio.composeapp.generated.resources.settings_tmdb_language_en_ca
+import nuvio.composeapp.generated.resources.settings_tmdb_language_en_gb
+import nuvio.composeapp.generated.resources.settings_tmdb_language_en_us
+import nuvio.composeapp.generated.resources.settings_tmdb_language_quick_pick_label
 import nuvio.composeapp.generated.resources.settings_tmdb_module_artwork
 import nuvio.composeapp.generated.resources.settings_tmdb_module_artwork_description
 import nuvio.composeapp.generated.resources.settings_tmdb_module_basic_info
@@ -326,6 +335,41 @@ private fun TmdbLanguageRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            FilterChip(
+                selected = "en" == draft.trim(),
+                onClick = { onLanguageCommitted("en") },
+                label = { Text("English") },
+                enabled = enabled,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    selectedLabelColor = MaterialTheme.colorScheme.primary,
+                ),
+            )
+            listOf(
+                "en-US" to stringResource(Res.string.settings_tmdb_language_en_us),
+                "en-GB" to stringResource(Res.string.settings_tmdb_language_en_gb),
+                "en-AU" to stringResource(Res.string.settings_tmdb_language_en_au),
+                "en-CA" to stringResource(Res.string.settings_tmdb_language_en_ca),
+            ).forEach { (code, label) ->
+                FilterChip(
+                    selected = code == draft.trim(),
+                    onClick = { onLanguageCommitted(code) },
+                    label = { Text(label) },
+                    enabled = enabled,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
         }
 
         OutlinedTextField(
