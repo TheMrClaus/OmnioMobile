@@ -84,6 +84,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.nuvioSafeBottomPadding
+import com.nuvio.app.features.streams.prefs.StreamPrefFilter
+import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
 import com.nuvio.app.features.watchprogress.WatchProgressRepository
 import kotlinx.coroutines.launch
 import kotlin.math.round
@@ -118,6 +120,10 @@ fun StreamsScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by StreamsRepository.uiState.collectAsStateWithLifecycle()
+    val streamPrefs by remember {
+        StreamPreferencesRepository.ensureLoaded()
+        StreamPreferencesRepository.uiState
+    }.collectAsStateWithLifecycle()
     val watchProgressUiState by remember {
         WatchProgressRepository.ensureLoaded()
         WatchProgressRepository.uiState
@@ -183,6 +189,21 @@ fun StreamsScreen(
     } else {
         background ?: poster
     }
+    val filteredGroups = remember(uiState.groups, streamPrefs) {
+        if (!streamPrefs.enabled) {
+            uiState.groups
+        } else {
+            uiState.groups.map { group ->
+                group.copy(streams = StreamPrefFilter.apply(group.streams, streamPrefs))
+            }
+        }
+    }
+    val displayUiState = remember(uiState, filteredGroups) {
+        uiState.copy(
+            groups = filteredGroups,
+            prefsFilteredCount = uiState.groups.sumOf { it.streams.size } - filteredGroups.sumOf { it.streams.size },
+        )
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -202,7 +223,7 @@ fun StreamsScreen(
                 seasonNumber = seasonNumber,
                 episodeNumber = episodeNumber,
                 episodeTitle = episodeTitle,
-                uiState = uiState,
+                uiState = displayUiState,
                 resumePositionMs = effectiveResumePositionMs,
                 resumeProgressFraction = effectiveResumeProgressFraction,
                 onStreamSelected = onStreamSelected,
@@ -217,7 +238,7 @@ fun StreamsScreen(
                 seasonNumber = seasonNumber,
                 episodeNumber = episodeNumber,
                 episodeTitle = episodeTitle,
-                uiState = uiState,
+                uiState = displayUiState,
                 resumePositionMs = effectiveResumePositionMs,
                 resumeProgressFraction = effectiveResumeProgressFraction,
                 onStreamSelected = onStreamSelected,
@@ -429,6 +450,15 @@ private fun MobileStreamsLayout(
                         selectedFilter = uiState.selectedFilter,
                         onFilterSelected = { addonId -> StreamsRepository.selectFilter(addonId) },
                     )
+
+                    if (uiState.prefsFilteredCount > 0) {
+                        Text(
+                            text = stringResource(Res.string.stream_prefs_filter_active, uiState.prefsFilteredCount),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     StreamList(
                         uiState = uiState,

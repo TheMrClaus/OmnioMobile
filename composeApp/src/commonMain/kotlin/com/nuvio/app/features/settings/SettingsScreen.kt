@@ -385,6 +385,7 @@ private fun MobileSettingsScreen(
                 tunnelingEnabled = tunnelingEnabled,
                 useLibass = useLibass,
                 libassRenderType = libassRenderType,
+                onStreamPreferencesClick = { onPageChange(SettingsPage.StreamPreferences) },
             )
             SettingsPage.Appearance -> appearanceSettingsContent(
                 isTablet = false,
@@ -632,6 +633,7 @@ private fun TabletSettingsScreen(
                     tunnelingEnabled = tunnelingEnabled,
                     useLibass = useLibass,
                     libassRenderType = libassRenderType,
+                    onStreamPreferencesClick = { openInlinePage(SettingsPage.StreamPreferences) },
                 )
                 SettingsPage.Appearance -> appearanceSettingsContent(
                     isTablet = true,

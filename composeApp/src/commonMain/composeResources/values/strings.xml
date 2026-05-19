@@ -1244,6 +1244,8 @@
     <string name="settings_source_cloud_service_disconnected">Not connected</string>
     <string name="settings_source_cloud_service_connect">Connect</string>
     <string name="settings_source_cloud_service_disconnect">Disconnect</string>
+    <string name="source_cloud_disconnect_confirm_title">Disconnect %s?</string>
+    <string name="source_cloud_disconnect_confirm_action">Disconnect</string>
     <string name="settings_source_cloud_config_status_title">Configuration status</string>
     <string name="settings_source_cloud_config_status_unknown">Status will appear once the backend responds.</string>
     <string name="settings_source_cloud_advanced_title">Advanced source config</string>

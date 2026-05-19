@@ -15,6 +15,8 @@ import com.nuvio.app.features.sourcecloud.SOURCE_CLOUD_PROVIDER
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
 import com.nuvio.app.features.sourcecloud.SourceCloudResolvedStream
 import com.nuvio.app.features.sourcecloud.SourceCloudSearchRequest
+import com.nuvio.app.features.streams.prefs.StreamPrefFilter
+import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
 import com.nuvio.app.features.plugins.PluginRepository
 import com.nuvio.app.features.plugins.pluginContentId
 import com.nuvio.app.features.plugins.PluginsUiState
@@ -242,6 +244,7 @@ object StreamsRepository {
             val installedAddonNames = installedAddons
                 .map { it.displayTitle }
                 .toSet()
+            val streamPrefs = StreamPreferencesRepository.uiState.value
             var autoSelectTriggered = false
             var timeoutElapsed = false
 
@@ -255,8 +258,13 @@ object StreamsRepository {
                             val allStreams = _uiState.value.groups.flatMap { it.streams }
                             if (allStreams.isNotEmpty()) {
                                 autoSelectTriggered = true
+                                val candidateStreams = if (streamPrefs.enabled && streamPrefs.sortCriteria.isNotEmpty()) {
+                                    StreamPrefFilter.apply(allStreams, streamPrefs)
+                                } else {
+                                    allStreams
+                                }
                                 val selected = StreamAutoPlaySelector.selectAutoPlayStream(
-                                    streams = allStreams,
+                                    streams = candidateStreams,
                                     mode = autoPlayMode,
                                     regexPattern = playerSettings.streamAutoPlayRegex,
                                     source = playerSettings.streamAutoPlaySource,
@@ -531,8 +539,13 @@ object StreamsRepository {
             if (isAutoPlayEnabled && !autoSelectTriggered) {
                 autoSelectTriggered = true
                 val allStreams = _uiState.value.groups.flatMap { it.streams }
+                val candidateStreams = if (streamPrefs.enabled && streamPrefs.sortCriteria.isNotEmpty()) {
+                    StreamPrefFilter.apply(allStreams, streamPrefs)
+                } else {
+                    allStreams
+                }
                 val selected = StreamAutoPlaySelector.selectAutoPlayStream(
-                    streams = allStreams,
+                    streams = candidateStreams,
                     mode = autoPlayMode,
                     regexPattern = playerSettings.streamAutoPlayRegex,
                     source = playerSettings.streamAutoPlaySource,

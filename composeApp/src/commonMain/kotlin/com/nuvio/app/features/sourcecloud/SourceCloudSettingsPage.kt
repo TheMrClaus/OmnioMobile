@@ -38,11 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.nuvio.app.core.ui.SettingsPickerOption
+import com.nuvio.app.core.ui.SettingsSingleChoiceDialog
 import com.nuvio.app.features.settings.SettingsGroup
 import com.nuvio.app.features.settings.SettingsGroupDivider
 import com.nuvio.app.features.settings.SettingsSection
 import com.nuvio.app.features.settings.SettingsSwitchRow
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.action_cancel
 import nuvio.composeapp.generated.resources.settings_source_cloud_advanced_open
 import nuvio.composeapp.generated.resources.settings_source_cloud_advanced_regenerate
 import nuvio.composeapp.generated.resources.settings_source_cloud_advanced_section
@@ -65,6 +68,8 @@ import nuvio.composeapp.generated.resources.settings_source_cloud_service_connec
 import nuvio.composeapp.generated.resources.settings_source_cloud_service_disconnect
 import nuvio.composeapp.generated.resources.settings_source_cloud_service_disconnected
 import nuvio.composeapp.generated.resources.settings_source_cloud_services_section
+import nuvio.composeapp.generated.resources.source_cloud_disconnect_confirm_action
+import nuvio.composeapp.generated.resources.source_cloud_disconnect_confirm_title
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -164,12 +169,35 @@ internal fun LazyListScope.sourceCloudSettingsContent(
                             if (newConnected) {
                                 SourceCloudRepository.beginConnectService(service)
                             } else {
-                                SourceCloudRepository.disconnectService(service)
+                                SourceCloudRepository.requestDisconnectConfirm(service)
                             }
                         },
                     )
                 }
             }
+        }
+    }
+
+    item {
+        val disconnectTarget = uiState.disconnectConfirmTarget
+        if (disconnectTarget != null) {
+            SettingsSingleChoiceDialog(
+                visible = true,
+                title = stringResource(Res.string.source_cloud_disconnect_confirm_title, disconnectTarget.displayName),
+                options = listOf(
+                    SettingsPickerOption(value = false, title = stringResource(Res.string.action_cancel)),
+                    SettingsPickerOption(value = true, title = stringResource(Res.string.source_cloud_disconnect_confirm_action)),
+                ),
+                selected = false,
+                onSelect = { confirmed ->
+                    if (confirmed) {
+                        SourceCloudRepository.disconnectService(disconnectTarget)
+                    } else {
+                        SourceCloudRepository.cancelDisconnectConfirm()
+                    }
+                },
+                onDismiss = SourceCloudRepository::cancelDisconnectConfirm,
+            )
         }
     }
 

@@ -103,6 +103,14 @@ internal object SourceCloudRepository {
         }
     }
 
+    fun requestDisconnectConfirm(service: SourceCloudService) {
+        _uiState.update { it.copy(disconnectConfirmTarget = service) }
+    }
+
+    fun cancelDisconnectConfirm() {
+        _uiState.update { it.copy(disconnectConfirmTarget = null) }
+    }
+
     fun submitConnectService(service: SourceCloudService, apiKey: String) {
         ensureLoaded()
         val trimmedKey = apiKey.trim()
@@ -187,6 +195,7 @@ internal object SourceCloudRepository {
                     isLoading = false,
                     status = newStatus ?: it.status,
                     connectedServiceKeys = settings.connectedServices.map { it.key }.toSet(),
+                    disconnectConfirmTarget = null,
                     errorMessage = if (response == null) "Disconnect didn't reach Source Cloud — retry to sync" else null,
                 )
             }
@@ -500,6 +509,7 @@ data class SourceCloudUiState(
     val connectServiceTarget: SourceCloudService? = null,
     val isConnectServiceSubmitting: Boolean = false,
     val connectServiceError: String? = null,
+    val disconnectConfirmTarget: SourceCloudService? = null,
     val configSummary: SourceCloudConfigSummary? = null,
     val isConfigSummaryLoading: Boolean = false,
     val isConfigSummarySaving: Boolean = false,

@@ -192,6 +192,15 @@ internal fun TabletStreamsLayout(
                             onFilterSelected = { addonId -> StreamsRepository.selectFilter(addonId) },
                         )
 
+                        if (uiState.prefsFilteredCount > 0) {
+                            Text(
+                                text = stringResource(Res.string.stream_prefs_filter_active, uiState.prefsFilteredCount),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 6.dp),
+                            )
+                        }
+
                         ActiveScrapersStatusBlock(
                             groups = uiState.groups,
                             modifier = Modifier.padding(bottom = 4.dp),
