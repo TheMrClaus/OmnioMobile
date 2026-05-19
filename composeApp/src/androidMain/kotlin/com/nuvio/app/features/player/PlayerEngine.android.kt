@@ -41,6 +41,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.extractor.ts.TsExtractor
@@ -74,6 +75,7 @@ actual fun PlatformPlayerSurface(
     playWhenReady: Boolean,
     resizeMode: PlayerResizeMode,
     useNativeController: Boolean,
+    forceHighestBitrate: Boolean,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
     onError: (String?) -> Unit,
@@ -100,7 +102,7 @@ actual fun PlatformPlayerSurface(
         LibassRenderType.valueOf(playerSettings.libassRenderType)
     }.getOrDefault(LibassRenderType.CUES)
 
-    val exoPlayer = remember(sourceUrl, sourceAudioUrl, sanitizedSourceHeaders, sanitizedSourceResponseHeaders) {
+    val exoPlayer = remember(sourceUrl, sourceAudioUrl, sanitizedSourceHeaders, sanitizedSourceResponseHeaders, forceHighestBitrate) {
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(playerSettings.decoderPriority)
             .setMapDV7ToHevc(playerSettings.mapDV7ToHevc)
@@ -113,6 +115,15 @@ actual fun PlatformPlayerSurface(
             if (playerSettings.tunnelingEnabled) {
                 setParameters(buildUponParameters().setTunnelingEnabled(true))
             }
+            if (forceHighestBitrate) {
+                setParameters(buildUponParameters().setForceHighestSupportedBitrate(true))
+            }
+        }
+
+        val bandwidthMeter = if (forceHighestBitrate) {
+            DefaultBandwidthMeter.Builder(context).setInitialBitrateEstimate(50_000_000L).build()
+        } else {
+            null
         }
 
         val loadControl = DefaultLoadControl.Builder()
@@ -140,6 +151,7 @@ actual fun PlatformPlayerSurface(
             ExoPlayer.Builder(context)
                 .setTrackSelector(trackSelector)
                 .setLoadControl(loadControl)
+                .apply { if (bandwidthMeter != null) setBandwidthMeter(bandwidthMeter) }
                 .buildWithAssSupportCompat(
                     context = context,
                     renderType = libassRenderType.toAssRenderType(),
@@ -158,6 +170,7 @@ actual fun PlatformPlayerSurface(
                 .setTrackSelector(trackSelector)
                 .setLoadControl(loadControl)
                 .setMediaSourceFactory(mediaSourceFactory)
+                .apply { if (bandwidthMeter != null) setBandwidthMeter(bandwidthMeter) }
                 .build()
         }
 

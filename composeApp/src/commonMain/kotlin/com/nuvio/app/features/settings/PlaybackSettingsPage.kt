@@ -78,6 +78,7 @@ internal fun LazyListScope.playbackSettingsContent(
     tunnelingEnabled: Boolean,
     useLibass: Boolean,
     libassRenderType: String,
+    onStreamPreferencesClick: () -> Unit = {},
 ) {
     item {
         PlaybackSettingsSection(
@@ -96,6 +97,7 @@ internal fun LazyListScope.playbackSettingsContent(
             tunnelingEnabled = tunnelingEnabled,
             useLibass = useLibass,
             libassRenderType = libassRenderType,
+            onStreamPreferencesClick = onStreamPreferencesClick,
         )
     }
 }
@@ -117,6 +119,7 @@ private fun PlaybackSettingsSection(
     tunnelingEnabled: Boolean,
     useLibass: Boolean,
     libassRenderType: String,
+    onStreamPreferencesClick: () -> Unit,
 ) {
     var showPreferredAudioDialog by remember { mutableStateOf(false) }
     var showSecondaryAudioDialog by remember { mutableStateOf(false) }
@@ -243,6 +246,13 @@ private fun PlaybackSettingsSection(
                         onClick = { showReuseCacheDurationDialog = true },
                     )
                 }
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_stream_prefs),
+                    description = stringResource(Res.string.settings_stream_prefs_subtitle),
+                    isTablet = isTablet,
+                    onClick = onStreamPreferencesClick,
+                )
             }
         }
 

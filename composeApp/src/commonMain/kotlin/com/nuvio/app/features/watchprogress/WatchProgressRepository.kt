@@ -109,6 +109,7 @@ object WatchProgressRepository {
 
         runCatching {
             val serverEntries = syncAdapter.pull(profileId = profileId)
+            val lastPushMs = WatchProgressStorage.loadLastSuccessfulPushMs(profileId)
 
             val oldLocal = entriesByVideoId.toMap()
             val newMap = mutableMapOf<String, WatchProgressEntry>()
@@ -142,14 +143,35 @@ object WatchProgressRepository {
                 )
             }
 
+            val preserved = oldLocal.values.filter { local ->
+                local.videoId !in newMap && local.lastUpdatedEpochMs > lastPushMs
+            }
+            preserved.forEach { newMap[it.videoId] = it }
+
             entriesByVideoId = newMap
             hasLoaded = true
             publish()
             persist()
+            WatchProgressStorage.saveLastSuccessfulPushMs(profileId, WatchProgressClock.nowEpochMs())
+
+            if (preserved.isNotEmpty()) {
+                pushScrobbleToServerList(preserved)
+            }
 
             resolveRemoteMetadata()
         }.onFailure { e ->
             log.e(e) { "Failed to pull watch progress from server" }
+        }
+    }
+
+    private fun pushScrobbleToServerList(entries: Collection<WatchProgressEntry>) {
+        syncScope.launch {
+            runCatching {
+                val profileId = ProfileRepository.activeProfileId
+                syncAdapter.push(profileId = profileId, entries = entries.toList())
+            }.onFailure { e ->
+                log.e(e) { "Failed to push persisted watch progress after pull" }
+            }
         }
     }
 
@@ -368,7 +390,6 @@ object WatchProgressRepository {
     }
 
     private fun pushScrobbleToServer(entry: WatchProgressEntry) {
-        if (shouldUseTraktProgress()) return
         syncScope.launch {
             runCatching {
                 val profileId = ProfileRepository.activeProfileId
@@ -380,7 +401,6 @@ object WatchProgressRepository {
     }
 
     private fun pushDeleteToServer(entries: Collection<WatchProgressEntry>) {
-        if (shouldUseTraktProgress()) return
         syncScope.launch {
             runCatching {
                 if (entries.isEmpty()) return@runCatching
