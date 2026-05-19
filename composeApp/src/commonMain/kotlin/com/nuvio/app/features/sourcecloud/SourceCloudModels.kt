@@ -69,6 +69,7 @@ data class SourceCloudAdvancedConfigSession(
     val expiresAtEpochMillis: Long? = null,
     val message: String? = null,
     val configurePassword: String? = null,
+    val directConfigureUrl: String? = null,
 )
 
 data class SourceCloudSearchRequest(

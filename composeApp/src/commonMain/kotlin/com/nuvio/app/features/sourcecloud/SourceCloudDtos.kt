@@ -60,6 +60,7 @@ internal data class SourceCloudAdvancedConfigSessionResponseDto(
     val expiresAtEpochMillis: Long? = null,
     val message: String? = null,
     val configurePassword: String? = null,
+    val directConfigureUrl: String? = null,
 )
 
 @Serializable
@@ -176,6 +177,7 @@ internal fun SourceCloudAdvancedConfigSessionResponseDto.toDomain(): SourceCloud
         expiresAtEpochMillis = expiresAtEpochMillis,
         message = message,
         configurePassword = configurePassword,
+        directConfigureUrl = directConfigureUrl,
     )
 
 internal fun SourceCloudStreamDto.toDomain(): SourceCloudResolvedStream {

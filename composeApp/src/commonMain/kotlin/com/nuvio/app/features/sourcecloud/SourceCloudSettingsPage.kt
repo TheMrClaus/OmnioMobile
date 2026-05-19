@@ -459,6 +459,33 @@ private fun SourceCloudAdvancedCard(
                     }
                 }
             }
+            resolved.directConfigureUrl?.takeIf { it.isNotBlank() }?.let { directUrl ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Bookmark this in a password manager to open from any browser:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = directUrl,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                        )
+                        TextButton(
+                            onClick = { clipboardManager.setText(AnnotatedString(directUrl)) },
+                        ) {
+                            Text("Copy")
+                        }
+                    }
+                }
+            }
         }
 
         Row(
