@@ -1,6 +1,7 @@
 package com.nuvio.app.features.settings
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -11,6 +12,7 @@ internal enum class IntegrationLogo {
     Trakt,
     MdbList,
     Emby,
+    SourceCloud,
 }
 
 @Composable
@@ -23,3 +25,10 @@ internal expect fun integrationLogoPainter(logo: IntegrationLogo): Painter
  */
 @Composable
 internal fun embyFallbackPainter(): Painter = rememberVectorPainter(Icons.Filled.Dns)
+
+/**
+ * Cloud-shaped fallback for the Omnio Source Cloud icon. A dedicated brand
+ * asset can replace this later without touching the call sites.
+ */
+@Composable
+internal fun sourceCloudFallbackPainter(): Painter = rememberVectorPainter(Icons.Filled.CloudQueue)

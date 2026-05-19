@@ -24,6 +24,7 @@ import nuvio.composeapp.generated.resources.compose_settings_page_playback
 import nuvio.composeapp.generated.resources.compose_settings_page_plugins
 import nuvio.composeapp.generated.resources.compose_settings_page_poster_customization
 import nuvio.composeapp.generated.resources.compose_settings_page_root
+import nuvio.composeapp.generated.resources.compose_settings_page_source_cloud
 import nuvio.composeapp.generated.resources.compose_settings_page_supporters_contributors
 import nuvio.composeapp.generated.resources.compose_settings_page_tmdb_enrichment
 import nuvio.composeapp.generated.resources.compose_settings_page_trakt
@@ -126,6 +127,11 @@ internal enum class SettingsPage(
     ),
     EmbyAuthentication(
         titleRes = Res.string.compose_settings_page_emby,
+        category = SettingsCategory.General,
+        parentPage = Integrations,
+    ),
+    SourceCloud(
+        titleRes = Res.string.compose_settings_page_source_cloud,
         category = SettingsCategory.General,
         parentPage = Integrations,
     ),

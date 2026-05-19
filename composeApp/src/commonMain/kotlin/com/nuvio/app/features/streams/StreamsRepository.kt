@@ -9,6 +9,12 @@ import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.emby.EmbyAuthRepository
 import com.nuvio.app.features.emby.EmbyMediaService
 import com.nuvio.app.features.player.PlayerSettingsRepository
+import com.nuvio.app.features.sourcecloud.SOURCE_CLOUD_ADDON_ID
+import com.nuvio.app.features.sourcecloud.SOURCE_CLOUD_GROUP_NAME
+import com.nuvio.app.features.sourcecloud.SOURCE_CLOUD_PROVIDER
+import com.nuvio.app.features.sourcecloud.SourceCloudRepository
+import com.nuvio.app.features.sourcecloud.SourceCloudResolvedStream
+import com.nuvio.app.features.sourcecloud.SourceCloudSearchRequest
 import com.nuvio.app.features.plugins.PluginRepository
 import com.nuvio.app.features.plugins.pluginContentId
 import com.nuvio.app.features.plugins.PluginsUiState
@@ -32,6 +38,7 @@ import kotlinx.coroutines.launch
 object StreamsRepository {
     private val log = Logger.withTag("StreamsRepo")
     private const val EMBY_ADDON_ID = "emby"
+    private const val SOURCE_CLOUD_GROUP_ID = SOURCE_CLOUD_ADDON_ID
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _uiState = MutableStateFlow(StreamsUiState())
     val uiState: StateFlow<StreamsUiState> = _uiState.asStateFlow()
@@ -101,8 +108,10 @@ object StreamsRepository {
         val embeddedStreams = MetaDetailsRepository.findEmbeddedStreams(videoId)
         EmbyAuthRepository.ensureLoaded()
         val embyConfigured = EmbyAuthRepository.isConfigured()
+        SourceCloudRepository.ensureLoaded()
+        val sourceCloudConfigured = SourceCloudRepository.isConfigured()
 
-        if (embeddedStreams.isNotEmpty() && !embyConfigured) {
+        if (embeddedStreams.isNotEmpty() && !embyConfigured && !sourceCloudConfigured) {
             log.d { "Using ${embeddedStreams.size} embedded streams for type=$type id=$videoId" }
             val group = AddonStreamGroup(
                 addonName = embeddedStreams.first().addonName,
@@ -129,7 +138,7 @@ object StreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && embeddedStreams.isEmpty()) {
+        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && !sourceCloudConfigured && embeddedStreams.isEmpty()) {
             _uiState.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = StreamsEmptyStateReason.NoAddonsInstalled,
@@ -157,7 +166,7 @@ object StreamsRepository {
 
         log.d { "Found ${streamAddons.size} addons for stream type=$type id=$videoId" }
 
-            if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && embeddedStreams.isEmpty()) {
+            if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && !embyConfigured && !sourceCloudConfigured && embeddedStreams.isEmpty()) {
             _uiState.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = StreamsEmptyStateReason.NoCompatibleAddons,
@@ -178,6 +187,15 @@ object StreamsRepository {
             )
         } else null
 
+        val sourceCloudPlaceholder = if (sourceCloudConfigured) {
+            AddonStreamGroup(
+                addonName = SOURCE_CLOUD_GROUP_NAME,
+                addonId = SOURCE_CLOUD_GROUP_ID,
+                streams = emptyList(),
+                isLoading = true,
+            )
+        } else null
+
         val embeddedGroup = if (embeddedStreams.isNotEmpty()) {
             AddonStreamGroup(
                 addonName = embeddedStreams.first().addonName,
@@ -187,7 +205,7 @@ object StreamsRepository {
             )
         } else null
 
-        val initialGroups = listOfNotNull(embyPlaceholder, embeddedGroup) + streamAddons.map { addon ->
+        val initialGroups = listOfNotNull(embyPlaceholder, sourceCloudPlaceholder, embeddedGroup) + streamAddons.map { addon ->
             AddonStreamGroup(
                 addonName = addon.addonName,
                 addonId = addon.addonId,
@@ -218,7 +236,8 @@ object StreamsRepository {
                 .toMutableMap()
             val pluginFirstErrorByAddonId = mutableMapOf<String, String>()
             val totalTasks = streamAddons.size + pluginRemainingByAddonId.values.sum() +
-                (if (embyConfigured) 1 else 0)
+                (if (embyConfigured) 1 else 0) +
+                (if (sourceCloudConfigured) 1 else 0)
 
             val installedAddonNames = installedAddons
                 .map { it.displayTitle }
@@ -265,6 +284,50 @@ object StreamsRepository {
                 }
             } else {
                 null
+            }
+
+            if (sourceCloudConfigured) {
+                launch {
+                    val group = runCatching {
+                        SourceCloudRepository.resolveStream(
+                            SourceCloudSearchRequest(
+                                type = type,
+                                videoId = videoId,
+                                season = season,
+                                episode = episode,
+                            )
+                        )
+                    }.fold(
+                        onSuccess = { resolved ->
+                            if (resolved == null) {
+                                AddonStreamGroup(
+                                    addonName = SOURCE_CLOUD_GROUP_NAME,
+                                    addonId = SOURCE_CLOUD_GROUP_ID,
+                                    streams = emptyList(),
+                                    isLoading = false,
+                                )
+                            } else {
+                                AddonStreamGroup(
+                                    addonName = SOURCE_CLOUD_GROUP_NAME,
+                                    addonId = SOURCE_CLOUD_GROUP_ID,
+                                    streams = listOf(resolved.toStreamItem()),
+                                    isLoading = false,
+                                )
+                            }
+                        },
+                        onFailure = { err ->
+                            log.w(err) { "Failed to resolve Source Cloud stream" }
+                            AddonStreamGroup(
+                                addonName = SOURCE_CLOUD_GROUP_NAME,
+                                addonId = SOURCE_CLOUD_GROUP_ID,
+                                streams = emptyList(),
+                                isLoading = false,
+                                error = err.message,
+                            )
+                        },
+                    )
+                    completions.send(StreamLoadCompletion.Addon(group))
+                }
             }
 
             if (embyConfigured) {
@@ -643,4 +706,46 @@ private fun String.fallbackRepositoryLabel(): String {
     return host.ifBlank {
         withoutManifest.substringAfterLast('/').ifBlank { "Plugin repository" }
     }
+}
+
+private fun SourceCloudResolvedStream.toStreamItem(): StreamItem {
+    val displayName = listOfNotNull(
+        name?.takeIf { it.isNotBlank() },
+        title?.takeIf { it.isNotBlank() },
+    ).firstOrNull() ?: SOURCE_CLOUD_GROUP_NAME
+    val descriptionParts = listOfNotNull(
+        metadata?.quality?.takeIf { it.isNotBlank() },
+        metadata?.codec?.takeIf { it.isNotBlank() },
+        metadata?.audio?.takeIf { it.isNotBlank() },
+        metadata?.hdr?.takeIf { it.isNotBlank() },
+        metadata?.language?.takeIf { it.isNotBlank() },
+        metadata?.sourceService?.displayName,
+    )
+    val resolvedDescription = descriptionParts.joinToString(" • ").ifBlank {
+        description?.takeIf { it.isNotBlank() } ?: title?.takeIf { it.isNotBlank() }
+    }
+    val sanitizedHeaders = requestHeaders?.takeIf { it.isNotEmpty() }
+    val behaviorHints = if (sanitizedHeaders != null || videoSize != null || !filename.isNullOrBlank()) {
+        StreamBehaviorHints(
+            notWebReady = sanitizedHeaders != null,
+            videoSize = videoSize,
+            filename = filename,
+            proxyHeaders = sanitizedHeaders?.let { StreamProxyHeaders(request = it) },
+        )
+    } else {
+        StreamBehaviorHints()
+    }
+    return StreamItem(
+        name = displayName,
+        description = resolvedDescription,
+        url = url,
+        infoHash = infoHash,
+        fileIdx = fileIdx,
+        externalUrl = externalUrl,
+        sourceName = metadata?.sourceService?.displayName ?: SOURCE_CLOUD_GROUP_NAME,
+        addonName = SOURCE_CLOUD_GROUP_NAME,
+        addonId = SOURCE_CLOUD_ADDON_ID,
+        behaviorHints = behaviorHints,
+        sourceProvider = SOURCE_CLOUD_PROVIDER,
+    )
 }

@@ -23,6 +23,8 @@ internal actual object PlatformLocalAccountDataCleaner {
         "nuvio_episode_release_notifications_platform",
         "nuvio_watch_progress",
         "nuvio_plugins",
+        "nuvio_emby_auth",
+        "nuvio_source_cloud",
     )
 
     private var appContext: Context? = null
