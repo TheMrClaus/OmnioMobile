@@ -32,6 +32,33 @@ internal data class SourceCloudDisconnectServiceRequestDto(
 )
 
 @Serializable
+internal data class SourceCloudConfigSummaryRequestDto(
+    val profileId: Int,
+)
+
+@Serializable
+internal data class SourceCloudConfigSummaryResponseDto(
+    val tmdbApiKey: String? = null,
+    val tmdbAccessToken: String? = null,
+    val tvdbApiKey: String? = null,
+    val rpdbApiKey: String? = null,
+    val animeToshoEnabled: Boolean = false,
+    val debridioApiKey: String? = null,
+    val provisioned: Boolean = false,
+)
+
+@Serializable
+internal data class SourceCloudUpdateConfigRequestDto(
+    val profileId: Int,
+    val tmdbApiKey: String? = null,
+    val tmdbAccessToken: String? = null,
+    val tvdbApiKey: String? = null,
+    val rpdbApiKey: String? = null,
+    val animeToshoEnabled: Boolean? = null,
+    val debridioApiKey: String? = null,
+)
+
+@Serializable
 internal data class SourceCloudStatusResponseDto(
     val config: SourceCloudConfigStateDto? = null,
     val services: List<SourceCloudServiceStatusDto>? = null,

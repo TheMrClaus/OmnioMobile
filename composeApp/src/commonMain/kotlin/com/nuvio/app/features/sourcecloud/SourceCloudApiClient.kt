@@ -94,6 +94,20 @@ internal object SourceCloudApiClient {
         return decodeOrNull(response)
     }
 
+    suspend fun getConfigSummary(profileId: Int): SourceCloudConfigSummaryResponseDto? {
+        val body = json.encodeToString(SourceCloudConfigSummaryRequestDto(profileId))
+        val response = request(method = "POST", function = "source-cloud-get-config-summary", body = body)
+            ?: return null
+        return decodeOrNull(response)
+    }
+
+    suspend fun updateConfig(request: SourceCloudUpdateConfigRequestDto): SourceCloudStatusResponseDto? {
+        val body = json.encodeToString(request)
+        val response = this.request(method = "POST", function = "source-cloud-update-config", body = body)
+            ?: return null
+        return decodeOrNull(response)
+    }
+
     private suspend fun request(
         method: String,
         function: String,

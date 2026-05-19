@@ -363,6 +363,101 @@ internal object SourceCloudRepository {
         }
     }
 
+    fun refreshConfigSummary() {
+        ensureLoaded()
+        _uiState.update { it.copy(isConfigSummaryLoading = true, configSummaryError = null) }
+        scope.launch {
+            val response = runCatching {
+                if (!SourceCloudApiClient.baseUrlConfigured) null
+                else SourceCloudApiClient.getConfigSummary(activeProfileId())
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                log.w { "Config summary fetch failed: ${error.message}" }
+            }.getOrNull()
+
+            if (response == null) {
+                _uiState.update {
+                    it.copy(
+                        isConfigSummaryLoading = false,
+                        configSummaryError = "Couldn't load API keys",
+                    )
+                }
+                return@launch
+            }
+
+            val summary = SourceCloudConfigSummary(
+                tmdbApiKey = response.tmdbApiKey.orEmpty(),
+                tmdbAccessToken = response.tmdbAccessToken.orEmpty(),
+                tvdbApiKey = response.tvdbApiKey.orEmpty(),
+                rpdbApiKey = response.rpdbApiKey.orEmpty(),
+                animeToshoEnabled = response.animeToshoEnabled,
+                debridioApiKey = response.debridioApiKey.orEmpty(),
+                provisioned = response.provisioned,
+            )
+            _uiState.update {
+                it.copy(
+                    isConfigSummaryLoading = false,
+                    configSummary = summary,
+                    configSummaryError = null,
+                )
+            }
+        }
+    }
+
+    fun saveConfigSummary(updated: SourceCloudConfigSummary) {
+        ensureLoaded()
+        val current = _uiState.value.configSummary
+        // Only send fields that actually changed. Empty → null clears server-side.
+        fun diffStr(now: String, before: String?): String? {
+            if (now == (before ?: "")) return null // unchanged → don't include in request (handled below)
+            return if (now.isEmpty()) "" else now
+        }
+
+        val request = SourceCloudUpdateConfigRequestDto(
+            profileId = activeProfileId(),
+            tmdbApiKey = diffStr(updated.tmdbApiKey, current?.tmdbApiKey),
+            tmdbAccessToken = diffStr(updated.tmdbAccessToken, current?.tmdbAccessToken),
+            tvdbApiKey = diffStr(updated.tvdbApiKey, current?.tvdbApiKey),
+            rpdbApiKey = diffStr(updated.rpdbApiKey, current?.rpdbApiKey),
+            animeToshoEnabled = if (updated.animeToshoEnabled != current?.animeToshoEnabled) updated.animeToshoEnabled else null,
+            debridioApiKey = diffStr(updated.debridioApiKey, current?.debridioApiKey),
+        )
+
+        _uiState.update { it.copy(isConfigSummarySaving = true, configSummaryError = null) }
+        scope.launch {
+            val response = runCatching {
+                if (!SourceCloudApiClient.baseUrlConfigured) null
+                else SourceCloudApiClient.updateConfig(request)
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                log.w { "Update config failed: ${error.message}" }
+            }.getOrNull()
+
+            if (response == null) {
+                _uiState.update {
+                    it.copy(
+                        isConfigSummarySaving = false,
+                        configSummaryError = "Couldn't save — try again",
+                    )
+                }
+                return@launch
+            }
+            val newStatus = response.toDomain(
+                enabled = settings.enabled,
+                baseUrlConfigured = true,
+            )
+            statusCache = newStatus
+            _uiState.update {
+                it.copy(
+                    isConfigSummarySaving = false,
+                    status = newStatus,
+                    configSummary = updated,
+                    configSummaryError = null,
+                )
+            }
+        }
+    }
+
     private fun activeProfileId(): Int = ProfileRepository.activeProfileId
 
     private fun offlineStatus(baseUrlConfigured: Boolean): SourceCloudStatus = SourceCloudStatus(
@@ -383,6 +478,16 @@ internal object SourceCloudRepository {
 internal const val SOURCE_CLOUD_ADVANCED_UNAVAILABLE_MESSAGE =
     "Advanced Source Config is unavailable right now."
 
+data class SourceCloudConfigSummary(
+    val tmdbApiKey: String = "",
+    val tmdbAccessToken: String = "",
+    val tvdbApiKey: String = "",
+    val rpdbApiKey: String = "",
+    val animeToshoEnabled: Boolean = false,
+    val debridioApiKey: String = "",
+    val provisioned: Boolean = false,
+)
+
 data class SourceCloudUiState(
     val isLoading: Boolean = false,
     val isAdvancedConfigLoading: Boolean = false,
@@ -395,4 +500,8 @@ data class SourceCloudUiState(
     val connectServiceTarget: SourceCloudService? = null,
     val isConnectServiceSubmitting: Boolean = false,
     val connectServiceError: String? = null,
+    val configSummary: SourceCloudConfigSummary? = null,
+    val isConfigSummaryLoading: Boolean = false,
+    val isConfigSummarySaving: Boolean = false,
+    val configSummaryError: String? = null,
 )

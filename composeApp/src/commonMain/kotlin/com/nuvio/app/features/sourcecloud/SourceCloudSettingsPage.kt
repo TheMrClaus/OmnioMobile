@@ -2,25 +2,34 @@ package com.nuvio.app.features.sourcecloud
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
@@ -186,6 +195,20 @@ internal fun LazyListScope.sourceCloudSettingsContent(
                         onClick = SourceCloudRepository::resetConfig,
                     )
                 }
+            }
+        }
+    }
+
+    item {
+        SettingsSection(
+            title = "API keys",
+            isTablet = isTablet,
+        ) {
+            SettingsGroup(isTablet = isTablet) {
+                SourceCloudApiKeysCard(
+                    isTablet = isTablet,
+                    uiState = uiState,
+                )
             }
         }
     }
@@ -530,10 +553,238 @@ private enum class SourceCloudInfoTone {
     Error,
 }
 
+private data class ApiKeysFormState(
+    val tmdbApiKey: String,
+    val tmdbAccessToken: String,
+    val tvdbApiKey: String,
+    val rpdbApiKey: String,
+    val animeToshoEnabled: Boolean,
+    val debridioApiKey: String,
+)
+
+private fun SourceCloudConfigSummary.toForm(): ApiKeysFormState = ApiKeysFormState(
+    tmdbApiKey = tmdbApiKey,
+    tmdbAccessToken = tmdbAccessToken,
+    tvdbApiKey = tvdbApiKey,
+    rpdbApiKey = rpdbApiKey.ifEmpty { "t0-free-rpdb" },
+    animeToshoEnabled = animeToshoEnabled,
+    debridioApiKey = debridioApiKey,
+)
+
+@Composable
+private fun SourceCloudApiKeysCard(
+    isTablet: Boolean,
+    uiState: SourceCloudUiState,
+) {
+    val horizontalPadding = if (isTablet) 20.dp else 16.dp
+    val verticalPadding = if (isTablet) 16.dp else 14.dp
+    val uriHandler = LocalUriHandler.current
+
+    LaunchedEffect(Unit) {
+        if (uiState.configSummary == null && !uiState.isConfigSummaryLoading) {
+            SourceCloudRepository.refreshConfigSummary()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val summary = uiState.configSummary
+        if (summary == null) {
+            if (uiState.isConfigSummaryLoading) {
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("Loading API keys...", style = MaterialTheme.typography.bodyMedium)
+                }
+            } else {
+                Text(
+                    text = uiState.configSummaryError
+                        ?: "Connect a service first to manage API keys.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (uiState.configSummaryError != null) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(
+                    onClick = { SourceCloudRepository.refreshConfigSummary() },
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                ) { Text("Retry") }
+            }
+            return@Column
+        }
+
+        var form by remember(summary) { mutableStateOf(summary.toForm()) }
+        val baseline = remember(summary) { summary.toForm() }
+        val dirty = form != baseline
+
+        val tmdbKeyError = if (form.tmdbApiKey.isNotEmpty() && form.tmdbApiKey.length != 32) {
+            "Should be exactly 32 characters"
+        } else null
+        val tmdbTokenError = if (form.tmdbAccessToken.isNotEmpty() && form.tmdbAccessToken.length < 200) {
+            "Should be 200+ characters"
+        } else null
+        val hasErrors = tmdbKeyError != null || tmdbTokenError != null
+
+        ApiKeyField(
+            label = "TMDB API Key",
+            value = form.tmdbApiKey,
+            onChange = { form = form.copy(tmdbApiKey = it) },
+            errorText = tmdbKeyError,
+            helpUrl = "https://www.themoviedb.org/settings/api",
+            helpLabel = "Get your TMDB key/token →",
+            uriHandler = uriHandler,
+        )
+        ApiKeyField(
+            label = "TMDB Read Access Token",
+            value = form.tmdbAccessToken,
+            onChange = { form = form.copy(tmdbAccessToken = it) },
+            errorText = tmdbTokenError,
+        )
+        ApiKeyField(
+            label = "TVDB API Key",
+            value = form.tvdbApiKey,
+            onChange = { form = form.copy(tvdbApiKey = it) },
+            helpUrl = "https://www.thetvdb.com/api-information",
+            helpLabel = "Get your TVDB key →",
+            uriHandler = uriHandler,
+        )
+        ApiKeyField(
+            label = "RPDB API Key",
+            value = form.rpdbApiKey,
+            onChange = { form = form.copy(rpdbApiKey = it) },
+            placeholder = "t0-free-rpdb",
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text("AnimeTosho", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    text = "Free anime source addon; no API key required.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = form.animeToshoEnabled,
+                onCheckedChange = { form = form.copy(animeToshoEnabled = it) },
+            )
+        }
+        ApiKeyField(
+            label = "Debridio API Key",
+            value = form.debridioApiKey,
+            onChange = { form = form.copy(debridioApiKey = it) },
+            helpUrl = "https://debridio.com",
+            helpLabel = "Sign up for Debridio →",
+            uriHandler = uriHandler,
+        )
+
+        uiState.configSummaryError?.takeIf { it.isNotBlank() }?.let { msg ->
+            Text(text = msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Button(
+                onClick = {
+                    SourceCloudRepository.saveConfigSummary(
+                        SourceCloudConfigSummary(
+                            tmdbApiKey = form.tmdbApiKey,
+                            tmdbAccessToken = form.tmdbAccessToken,
+                            tvdbApiKey = form.tvdbApiKey,
+                            rpdbApiKey = form.rpdbApiKey,
+                            animeToshoEnabled = form.animeToshoEnabled,
+                            debridioApiKey = form.debridioApiKey,
+                            provisioned = summary.provisioned,
+                        ),
+                    )
+                },
+                enabled = dirty && !hasErrors && !uiState.isConfigSummarySaving,
+            ) {
+                if (uiState.isConfigSummarySaving) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp),
+                    )
+                } else {
+                    Text("Save")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApiKeyField(
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+    errorText: String? = null,
+    placeholder: String? = null,
+    helpUrl: String? = null,
+    helpLabel: String? = null,
+    uriHandler: androidx.compose.ui.platform.UriHandler? = null,
+) {
+    var revealed by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            label = { Text(label) },
+            placeholder = placeholder?.let { { Text(it) } },
+            singleLine = true,
+            visualTransformation = if (revealed) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                IconButton(onClick = { revealed = !revealed }) {
+                    Icon(
+                        imageVector = if (revealed) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (revealed) "Hide" else "Reveal",
+                    )
+                }
+            },
+            isError = errorText != null,
+            supportingText = errorText?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (helpUrl != null && helpLabel != null && uriHandler != null) {
+            TextButton(
+                onClick = { runCatching { uriHandler.openUri(helpUrl) } },
+                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+            ) {
+                Text(helpLabel, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
 @Composable
 fun SourceCloudConnectServiceDialog(uiState: SourceCloudUiState) {
     val service = uiState.connectServiceTarget ?: return
+    val uriHandler = LocalUriHandler.current
     var apiKey by remember(service) { mutableStateOf("") }
+
+    val apiKeyHelpUrl: String? = when (service) {
+        SourceCloudService.REAL_DEBRID -> "https://real-debrid.com/apitoken"
+        SourceCloudService.TORBOX -> "https://torbox.app/settings"
+    }
+    val signUpUrl: String? = when (service) {
+        SourceCloudService.TORBOX -> "https://torbox.app/subscription?referral=ef446ad8-b935-4c71-aa8f-fb62813c7a23"
+        else -> null
+    }
 
     AlertDialog(
         onDismissRequest = {
@@ -561,6 +812,27 @@ fun SourceCloudConnectServiceDialog(uiState: SourceCloudUiState) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                apiKeyHelpUrl?.let { url ->
+                    TextButton(
+                        onClick = { runCatching { uriHandler.openUri(url) } },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Text("Get your ${service.displayName} API key →")
+                    }
+                }
+                signUpUrl?.let { url ->
+                    Text(
+                        text = "Don't have a ${service.displayName} account?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = { runCatching { uriHandler.openUri(url) } },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Text("Sign up (+15 days free via referral) →")
+                    }
+                }
                 uiState.connectServiceError?.takeIf { it.isNotBlank() }?.let { msg ->
                     Text(
                         text = msg,
