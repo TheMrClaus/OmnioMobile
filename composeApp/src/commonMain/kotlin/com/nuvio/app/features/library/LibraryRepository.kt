@@ -2,7 +2,6 @@ package com.nuvio.app.features.library
 
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.network.SupabaseProvider
-import com.nuvio.app.features.profiles.ProfileContentFilter
 import com.nuvio.app.features.profiles.ProfileRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktLibraryRepository
@@ -269,27 +268,24 @@ object LibraryRepository {
     }
 
     private fun publish() {
-        val activeProfile = ProfileRepository.state.value.activeProfile
-
         if (TraktAuthRepository.isAuthenticated.value) {
             val traktState = TraktLibraryRepository.uiState.value
             val sections = traktState.listTabs.mapNotNull { tab ->
                 val listItems = traktState.entriesByList[tab.key].orEmpty()
-                val filteredListItems = ProfileContentFilter.filterLibraryItems(listItems, activeProfile)
-                if (filteredListItems.isEmpty()) {
+                if (listItems.isEmpty()) {
                     null
                 } else {
                     LibrarySection(
                         type = tab.key,
                         displayTitle = tab.title,
-                        items = filteredListItems,
+                        items = listItems,
                     )
                 }
             }
 
             _uiState.value = LibraryUiState(
                 sourceMode = LibrarySourceMode.TRAKT,
-                items = ProfileContentFilter.filterLibraryItems(traktState.allItems, activeProfile),
+                items = traktState.allItems,
                 sections = sections,
                 isLoaded = traktState.hasLoaded,
                 isLoading = traktState.isLoading,
@@ -298,10 +294,7 @@ object LibraryRepository {
             return
         }
 
-        val items = ProfileContentFilter.filterLibraryItems(
-            items = itemsById.values.sortedByDescending { it.savedAtEpochMs },
-            activeProfile = activeProfile,
-        )
+        val items = itemsById.values.sortedByDescending { it.savedAtEpochMs }
         val sections = items
             .groupBy { it.type }
             .map { (type, typeItems) ->

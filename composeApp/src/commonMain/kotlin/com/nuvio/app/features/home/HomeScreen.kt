@@ -56,10 +56,8 @@ import kotlinx.coroutines.sync.withPermit
 import com.nuvio.app.features.home.components.ContinueWatchingLayout
 import com.nuvio.app.features.home.components.homeSectionHorizontalPaddingForWidth
 import com.nuvio.app.features.home.components.rememberContinueWatchingLayout
-import com.nuvio.app.features.profiles.ProfileContentFilter
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun HomeScreen(
@@ -157,9 +155,6 @@ fun HomeScreen(
     }
     val profileState by ProfileRepository.state.collectAsStateWithLifecycle()
     val activeProfileId = profileState.activeProfile?.profileIndex ?: 1
-    var continueWatchingAgeRatingsByContent by remember(activeProfileId) {
-        mutableStateOf<Map<String, String?>>(emptyMap())
-    }
 
     var nextUpItemsBySeries by remember(activeProfileId) { mutableStateOf<Map<String, Pair<Long, ContinueWatchingItem>>>(emptyMap()) }
 
@@ -209,15 +204,11 @@ fun HomeScreen(
         visibleContinueWatchingEntries,
         cachedInProgressItems,
         effectivNextUpItems,
-        continueWatchingAgeRatingsByContent,
-        profileState.activeProfile,
     ) {
         buildHomeContinueWatchingItems(
             visibleEntries = visibleContinueWatchingEntries,
             cachedInProgressByVideoId = cachedInProgressItems,
             nextUpItemsBySeries = effectivNextUpItems,
-            liveAgeRatingsByContent = continueWatchingAgeRatingsByContent,
-            activeProfile = profileState.activeProfile,
         )
     }
     val availableManifests = remember(addonsUiState.addons) {
@@ -280,7 +271,6 @@ fun HomeScreen(
                     ) ?: return@withPermit null
                     val item = completedEntry.toContinueWatchingSeed(meta)
                         .toUpNextContinueWatchingItem(nextEpisode)
-                        .copy(ageRating = meta.ageRating)
                     if (nextUpDismissKey(item.parentMetaId, item.nextUpSeedSeasonNumber, item.nextUpSeedEpisodeNumber) in continueWatchingPreferences.dismissedNextUpKeys) {
                         return@withPermit null
                     }
@@ -335,37 +325,6 @@ fun HomeScreen(
             nextUp = nextUpCache,
             inProgress = inProgressCache,
         )
-    }
-
-    LaunchedEffect(visibleContinueWatchingEntries, metaProviderKey) {
-        if (visibleContinueWatchingEntries.isEmpty() || metaProviderKey.isEmpty()) {
-            continueWatchingAgeRatingsByContent = emptyMap()
-            return@LaunchedEffect
-        }
-
-        val semaphore = Semaphore(4)
-        val ageRatings = visibleContinueWatchingEntries
-            .map { entry -> entry.parentMetaId to entry.parentMetaType }
-            .distinct()
-            .map { (contentId, contentType) ->
-                async {
-                    semaphore.withPermit {
-                        val ageRating = withTimeoutOrNull(CONTINUE_WATCHING_METADATA_FETCH_TIMEOUT_MS) {
-                            MetaDetailsRepository.fetch(type = contentType, id = contentId)?.ageRating
-                        }
-                        contentId to ageRating
-                    }
-                }
-            }
-            .awaitAll()
-            .mapNotNull { (contentId, ageRating) ->
-                ageRating
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { contentId to it }
-            }
-            .toMap()
-
-        continueWatchingAgeRatingsByContent = ageRatings
     }
 
     val hasActiveAddons = addonsUiState.addons.any { it.manifest != null }
@@ -592,15 +551,11 @@ internal fun buildHomeContinueWatchingItems(
     visibleEntries: List<WatchProgressEntry>,
     cachedInProgressByVideoId: Map<String, ContinueWatchingItem> = emptyMap(),
     nextUpItemsBySeries: Map<String, Pair<Long, ContinueWatchingItem>>,
-    liveAgeRatingsByContent: Map<String, String?> = emptyMap(),
-    activeProfile: com.nuvio.app.features.profiles.NuvioProfile? = null,
 ): List<ContinueWatchingItem> {
-    val items = buildList {
+    return buildList {
         addAll(
             visibleEntries.map { entry ->
-                val liveItem = entry.toContinueWatchingItem().copy(
-                    ageRating = liveAgeRatingsByContent[entry.parentMetaId],
-                )
+                val liveItem = entry.toContinueWatchingItem()
                 HomeContinueWatchingCandidate(
                     lastUpdatedEpochMs = entry.lastUpdatedEpochMs,
                     item = liveItem.withFallbackMetadata(cachedInProgressByVideoId[entry.videoId]),
@@ -625,8 +580,6 @@ internal fun buildHomeContinueWatchingItems(
         .filter { candidate -> candidate.item.shouldDisplayInContinueWatching() }
         .distinctBy { it.item.videoId }
         .map(HomeContinueWatchingCandidate::item)
-
-    return ProfileContentFilter.filterContinueWatchingItems(items, activeProfile)
 }
 
 private data class CompletedSeriesCandidate(
@@ -746,11 +699,8 @@ private fun ContinueWatchingItem.withFallbackMetadata(
         logo = logo ?: fallback.logo,
         poster = poster ?: fallback.poster,
         background = background ?: fallback.background,
-        ageRating = ageRating ?: fallback.ageRating,
         episodeTitle = episodeTitle ?: fallback.episodeTitle,
         episodeThumbnail = episodeThumbnail ?: fallback.episodeThumbnail,
         pauseDescription = pauseDescription ?: fallback.pauseDescription,
     )
 }
-
-private const val CONTINUE_WATCHING_METADATA_FETCH_TIMEOUT_MS = 3_500L

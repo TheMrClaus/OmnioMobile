@@ -10,8 +10,6 @@ import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.details.PersonDetail
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.PosterShape
-import com.nuvio.app.features.profiles.ProfileContentFilter
-import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -48,7 +46,7 @@ object TmdbMetadataService {
         if (!settings.enabled || !settings.hasApiKey) return@withContext null
         val language = normalizeTmdbLanguage(settings.language)
         val cacheKey = "$personId:${preferCrewCredits?.toString() ?: "auto"}:$language"
-        personCache[cacheKey]?.let { return@withContext filterPersonDetail(it) }
+        personCache[cacheKey]?.let { return@withContext it }
 
         try {
             val (person, credits) = coroutineScope {
@@ -111,7 +109,7 @@ object TmdbMetadataService {
                 tvCredits = tvCredits,
             )
             personCache[cacheKey] = detail
-            filterPersonDetail(detail)
+            detail
         } catch (e: Exception) {
             log.w(e) { "Failed to fetch person detail for $personId" }
             null
@@ -314,7 +312,7 @@ object TmdbMetadataService {
         val language = normalizeTmdbLanguage(settings.language)
         val normalizedSourceType = normalizeEntitySourceType(sourceType)
         val cacheKey = "${entityKind.routeValue}:$entityId:$normalizedSourceType:$language"
-        entityBrowseCache[cacheKey]?.let { return@withContext filterEntityBrowseData(it) }
+        entityBrowseCache[cacheKey]?.let { return@withContext it }
 
         val header = fetchEntityHeader(
             entityKind = entityKind,
@@ -334,17 +332,13 @@ object TmdbMetadataService {
                         language = language,
                         page = 1,
                     )
-                    val filteredItems = ProfileContentFilter.filter(
-                        items = pageResult.items,
-                        activeProfile = ProfileRepository.state.value.activeProfile,
-                    )
-                    if (filteredItems.isEmpty()) {
+                    if (pageResult.items.isEmpty()) {
                         null
                     } else {
                         TmdbEntityRail(
                             mediaType = mediaType,
                             railType = railType,
-                            items = filteredItems,
+                            items = pageResult.items,
                             currentPage = 1,
                             hasMore = pageResult.hasMore,
                         )
@@ -367,7 +361,7 @@ object TmdbMetadataService {
             rails = rails,
         )
         entityBrowseCache[cacheKey] = data
-        filterEntityBrowseData(data)
+        data
     }
 
     suspend fun fetchEntityRailPage(
@@ -1194,25 +1188,6 @@ object TmdbMetadataService {
         val result = response.name?.trim()?.takeIf(String::isNotBlank) to items
         collectionCache[cacheKey] = result
         return result
-    }
-
-    private fun filterPersonDetail(detail: PersonDetail): PersonDetail {
-        val activeProfile = ProfileRepository.state.value.activeProfile
-        return detail.copy(
-            movieCredits = ProfileContentFilter.filter(detail.movieCredits, activeProfile),
-            tvCredits = ProfileContentFilter.filter(detail.tvCredits, activeProfile),
-        )
-    }
-
-    private fun filterEntityBrowseData(data: TmdbEntityBrowseData): TmdbEntityBrowseData {
-        val activeProfile = ProfileRepository.state.value.activeProfile
-        return data.copy(
-            rails = data.rails
-                .map { rail ->
-                    rail.copy(items = ProfileContentFilter.filter(rail.items, activeProfile))
-                }
-                .filter { rail -> rail.items.isNotEmpty() },
-        )
     }
 
     private suspend fun fetchTrailers(

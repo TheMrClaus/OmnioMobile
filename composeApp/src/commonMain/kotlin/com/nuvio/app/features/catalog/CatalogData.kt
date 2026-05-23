@@ -6,8 +6,6 @@ import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.home.HomeCatalogParser
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.stableKey
-import com.nuvio.app.features.profiles.ProfileContentFilter
-import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,12 +76,8 @@ suspend fun fetchCatalogPage(
     } else {
         null
     }
-    val filteredItems = ProfileContentFilter.filter(
-        items = parsed.items,
-        activeProfile = ProfileRepository.state.value.activeProfile,
-    )
     return CatalogPage(
-        items = filteredItems,
+        items = parsed.items,
         rawItemCount = parsed.rawItemCount,
         nextSkip = nextSkip,
     )
