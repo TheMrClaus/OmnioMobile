@@ -46,6 +46,7 @@ import com.nuvio.app.features.watchprogress.toUpNextContinueWatchingItem
 import com.nuvio.app.features.watching.application.WatchingState
 import com.nuvio.app.features.watching.domain.WatchingContentRef
 import com.nuvio.app.features.collection.CollectionRepository
+import com.nuvio.app.features.profiles.ProfileContentFilter
 import com.nuvio.app.features.profiles.ProfileRepository
 import com.nuvio.app.features.home.components.HomeCollectionRowSection
 import com.nuvio.app.features.watchprogress.ContinueWatchingSectionStyle
@@ -204,12 +205,27 @@ fun HomeScreen(
         visibleContinueWatchingEntries,
         cachedInProgressItems,
         effectivNextUpItems,
+        profileState.activeProfile,
     ) {
-        buildHomeContinueWatchingItems(
+        val raw = buildHomeContinueWatchingItems(
             visibleEntries = visibleContinueWatchingEntries,
             cachedInProgressByVideoId = cachedInProgressItems,
             nextUpItemsBySeries = effectivNextUpItems,
         )
+        val activeProfile = profileState.activeProfile
+        if (activeProfile?.isKids != true) {
+            raw
+        } else {
+            // Kids gate using the MetaDetails cache only (peek, not fetch).
+            // Items whose detail screen has been visited already are filtered
+            // accurately; un-cached items pass through, matching the rest of
+            // the codebase policy ("unrated / unknown titles pass through")
+            // and avoiding a network burst on every Home recompose.
+            raw.filter { item ->
+                val cached = MetaDetailsRepository.peek(item.parentMetaType, item.parentMetaId)
+                ProfileContentFilter.allows(cached?.ageRating, activeProfile)
+            }
+        }
     }
     val availableManifests = remember(addonsUiState.addons) {
         addonsUiState.addons.mapNotNull { addon -> addon.manifest }
