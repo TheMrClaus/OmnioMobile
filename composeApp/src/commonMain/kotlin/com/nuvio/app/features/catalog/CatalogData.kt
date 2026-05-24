@@ -6,6 +6,8 @@ import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.home.HomeCatalogParser
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.stableKey
+import com.nuvio.app.features.profiles.ProfileContentFilter
+import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,13 +73,21 @@ suspend fun fetchCatalogPage(
         payload = payload,
         maxItems = maxItems,
     )
+    // Kids-profile age gating: items the addon returns with an age rating
+    // above the active profile's threshold are dropped. Unrated items pass
+    // through (CLAUDE.md policy). Non-kids profiles short-circuit inside the
+    // filter and return the list as-is.
+    val filteredItems = ProfileContentFilter.filterPreviews(
+        items = parsed.items,
+        activeProfile = ProfileRepository.state.value.activeProfile,
+    )
     val nextSkip = if (parsed.rawItemCount > 0) {
         (skip ?: 0) + parsed.rawItemCount
     } else {
         null
     }
     return CatalogPage(
-        items = parsed.items,
+        items = filteredItems,
         rawItemCount = parsed.rawItemCount,
         nextSkip = nextSkip,
     )

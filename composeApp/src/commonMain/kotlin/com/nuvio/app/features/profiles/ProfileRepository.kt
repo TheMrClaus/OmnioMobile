@@ -22,6 +22,7 @@ import com.nuvio.app.features.search.SearchHistoryRepository
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.emby.EmbyAuthRepository
+import com.nuvio.app.features.aiometadata.AioMetadataRepository
 import com.nuvio.app.features.sourcecloud.ProvisionProfileResult
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
 import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
@@ -270,15 +271,41 @@ object ProfileRepository {
         // here makes the local UX intent unambiguous.
         val effectiveCopyKeys = isKids || copyKeysFromMain
 
-        return when (val result = SourceCloudRepository.provisionProfile(
+        // Call SourceCloud then AIOMetadata sequentially (not in parallel) —
+        // the AIOMetadata edge function returns 412 when Main has no
+        // AIOMetadata config yet, and a stable failure order keeps the modal
+        // message deterministic. Failures from either are non-fatal: the
+        // profile row is already saved by pushProfiles above.
+        val sourceCloudResult = SourceCloudRepository.provisionProfile(
             profileId = nextIndex,
             isKids = isKids,
             copyKeysFromMain = effectiveCopyKeys,
-        )) {
-            is ProvisionProfileResult.Success -> null
-            is ProvisionProfileResult.Failure -> ProvisionMessage.Failure(
+        )
+        val aioMetadataResult = AioMetadataRepository.provisionForNewProfile(
+            profileId = nextIndex,
+            isKids = isKids,
+            copyKeysFromMain = effectiveCopyKeys,
+            kidsMaxAgeRating = normalizeKidsMaxAgeRating(
+                isKids = isKids,
+                maxAgeRating = maxAgeRating,
+            ),
+        )
+
+        val failures = buildList {
+            if (sourceCloudResult is ProvisionProfileResult.Failure) {
+                add("Source Cloud: ${sourceCloudResult.message}")
+            }
+            if (aioMetadataResult is AioMetadataRepository.ProvisionResult.Failure) {
+                add("AIOMetadata: ${aioMetadataResult.message}")
+            }
+        }
+
+        return if (failures.isEmpty()) {
+            null
+        } else {
+            ProvisionMessage.Failure(
                 profileName = name,
-                reason = result.message,
+                reason = failures.joinToString(separator = "\n• ", prefix = "• "),
             )
         }
     }

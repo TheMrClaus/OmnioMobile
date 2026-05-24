@@ -1,11 +1,38 @@
 package com.nuvio.app.features.profiles
 
 import com.nuvio.app.features.details.MetaDetails
+import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.library.LibraryItem
 
 object ProfileContentFilter {
     fun filter(meta: MetaDetails, activeProfile: NuvioProfile?): MetaDetails? {
         val threshold = kidsAgeThreshold(activeProfile) ?: return meta
         return meta.takeIf { allows(it.ageRating, threshold) }
+    }
+
+    /**
+     * Multi-item entry point used by catalog rows, TMDB credits/rails, and
+     * other discovery surfaces. Returns the list unchanged when the active
+     * profile is not a kids profile (so non-kids contexts skip the cost of
+     * iterating).
+     */
+    fun filterPreviews(items: List<MetaPreview>, activeProfile: NuvioProfile?): List<MetaPreview> {
+        val threshold = kidsAgeThreshold(activeProfile) ?: return items
+        return items.filter { allows(it.ageRating, threshold) }
+    }
+
+    /** Returns true when the supplied [ageRating] is allowed for the active
+     *  profile. Used at sites that already iterate (e.g. continue-watching
+     *  with an async age-rating lookup map). */
+    fun allows(ageRating: String?, activeProfile: NuvioProfile?): Boolean {
+        val threshold = kidsAgeThreshold(activeProfile) ?: return true
+        return allows(ageRating, threshold)
+    }
+
+    /** Library equivalent of [filterPreviews]. */
+    fun filterLibraryItems(items: List<LibraryItem>, activeProfile: NuvioProfile?): List<LibraryItem> {
+        val threshold = kidsAgeThreshold(activeProfile) ?: return items
+        return items.filter { allows(it.ageRating, threshold) }
     }
 
     private fun kidsAgeThreshold(activeProfile: NuvioProfile?): Int? =

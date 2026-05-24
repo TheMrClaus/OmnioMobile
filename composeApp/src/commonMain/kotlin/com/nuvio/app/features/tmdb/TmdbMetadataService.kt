@@ -10,6 +10,8 @@ import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.details.PersonDetail
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.PosterShape
+import com.nuvio.app.features.profiles.ProfileContentFilter
+import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -46,7 +48,10 @@ object TmdbMetadataService {
         if (!settings.enabled || !settings.hasApiKey) return@withContext null
         val language = normalizeTmdbLanguage(settings.language)
         val cacheKey = "$personId:${preferCrewCredits?.toString() ?: "auto"}:$language"
-        personCache[cacheKey]?.let { return@withContext it }
+        // The cache is profile-agnostic — store unfiltered, apply the
+        // active-profile kids filter on every return path so a switch from
+        // Main → Kids correctly re-gates the same cached person.
+        personCache[cacheKey]?.let { return@withContext it.appliedToActiveProfile() }
 
         try {
             val (person, credits) = coroutineScope {
@@ -109,11 +114,19 @@ object TmdbMetadataService {
                 tvCredits = tvCredits,
             )
             personCache[cacheKey] = detail
-            detail
+            detail.appliedToActiveProfile()
         } catch (e: Exception) {
             log.w(e) { "Failed to fetch person detail for $personId" }
             null
         }
+    }
+
+    private fun PersonDetail.appliedToActiveProfile(): PersonDetail {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+        return copy(
+            movieCredits = ProfileContentFilter.filterPreviews(movieCredits, activeProfile),
+            tvCredits = ProfileContentFilter.filterPreviews(tvCredits, activeProfile),
+        )
     }
 
     private fun shouldPreferCrewCredits(knownForDepartment: String?): Boolean {
@@ -312,7 +325,7 @@ object TmdbMetadataService {
         val language = normalizeTmdbLanguage(settings.language)
         val normalizedSourceType = normalizeEntitySourceType(sourceType)
         val cacheKey = "${entityKind.routeValue}:$entityId:$normalizedSourceType:$language"
-        entityBrowseCache[cacheKey]?.let { return@withContext it }
+        entityBrowseCache[cacheKey]?.let { return@withContext it.appliedToActiveProfile() }
 
         val header = fetchEntityHeader(
             entityKind = entityKind,
@@ -321,6 +334,10 @@ object TmdbMetadataService {
             language = language,
         )
 
+        // Build rails with raw (unfiltered) items so the cache stays
+        // profile-agnostic — apply the kids filter once at the return path.
+        // Without this, the first profile to populate the cache imprints its
+        // filter on every subsequent profile that hits the same entity.
         val rails = buildEntityMediaOrder(entityKind, normalizedSourceType)
             .flatMap { mediaType ->
                 TmdbEntityRailType.entries.mapNotNull { railType ->
@@ -331,6 +348,7 @@ object TmdbMetadataService {
                         railType = railType,
                         language = language,
                         page = 1,
+                        applyKidsFilter = false,
                     )
                     if (pageResult.items.isEmpty()) {
                         null
@@ -361,7 +379,21 @@ object TmdbMetadataService {
             rails = rails,
         )
         entityBrowseCache[cacheKey] = data
-        data
+        data.appliedToActiveProfile()
+    }
+
+    private fun TmdbEntityBrowseData.appliedToActiveProfile(): TmdbEntityBrowseData {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+        if (activeProfile?.isKids != true) return this
+        return copy(
+            rails = rails.map { rail ->
+                val gated = ProfileContentFilter.filterPreviews(rail.items, activeProfile)
+                rail.copy(
+                    items = gated,
+                    hasMore = rail.hasMore && gated.isNotEmpty(),
+                )
+            },
+        )
     }
 
     suspend fun fetchEntityRailPage(
@@ -371,14 +403,21 @@ object TmdbMetadataService {
         railType: TmdbEntityRailType,
         language: String,
         page: Int,
+        applyKidsFilter: Boolean = true,
     ): TmdbEntityRailPageResult {
         if (entityKind == TmdbEntityKind.NETWORK && mediaType == TmdbEntityMediaType.MOVIE) {
             return TmdbEntityRailPageResult(items = emptyList(), hasMore = false)
         }
 
         val cacheKey = "${entityKind.routeValue}:$entityId:${mediaType.value}:${railType.value}:$language:page:$page"
+        // Cache is profile-agnostic (see fetchPersonDetail comment); filter
+        // on every return so kids profiles re-gate the cached items.
+        // [applyKidsFilter] = false is used by fetchEntityBrowse so it can
+        // cache raw rails and filter once at its own return path.
+        val activeProfile = if (applyKidsFilter) ProfileRepository.state.value.activeProfile else null
         entityRailCache[cacheKey]?.let { cached ->
-            return TmdbEntityRailPageResult(items = cached, hasMore = cached.isNotEmpty())
+            val gated = if (applyKidsFilter) ProfileContentFilter.filterPreviews(cached, activeProfile) else cached
+            return TmdbEntityRailPageResult(items = gated, hasMore = gated.isNotEmpty())
         }
 
         val voteCountFloor = if (railType == TmdbEntityRailType.TOP_RATED) ENTITY_TOP_RATED_VOTE_FLOOR else null
@@ -445,7 +484,12 @@ object TmdbMetadataService {
         if (result.items.isNotEmpty()) {
             entityRailCache[cacheKey] = result.items
         }
-        return result
+        if (!applyKidsFilter) return result
+        val filtered = ProfileContentFilter.filterPreviews(result.items, activeProfile)
+        return result.copy(
+            items = filtered,
+            hasMore = result.hasMore && filtered.isNotEmpty(),
+        )
     }
 
     private suspend fun fetchEntityHeader(

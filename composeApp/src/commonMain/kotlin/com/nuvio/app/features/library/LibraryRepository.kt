@@ -2,6 +2,7 @@ package com.nuvio.app.features.library
 
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.network.SupabaseProvider
+import com.nuvio.app.features.profiles.ProfileContentFilter
 import com.nuvio.app.features.profiles.ProfileRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.trakt.TraktLibraryRepository
@@ -268,10 +269,15 @@ object LibraryRepository {
     }
 
     private fun publish() {
+        val activeProfile = ProfileRepository.state.value.activeProfile
+
         if (TraktAuthRepository.isAuthenticated.value) {
             val traktState = TraktLibraryRepository.uiState.value
             val sections = traktState.listTabs.mapNotNull { tab ->
-                val listItems = traktState.entriesByList[tab.key].orEmpty()
+                val listItems = ProfileContentFilter.filterLibraryItems(
+                    items = traktState.entriesByList[tab.key].orEmpty(),
+                    activeProfile = activeProfile,
+                )
                 if (listItems.isEmpty()) {
                     null
                 } else {
@@ -285,7 +291,7 @@ object LibraryRepository {
 
             _uiState.value = LibraryUiState(
                 sourceMode = LibrarySourceMode.TRAKT,
-                items = traktState.allItems,
+                items = ProfileContentFilter.filterLibraryItems(traktState.allItems, activeProfile),
                 sections = sections,
                 isLoaded = traktState.hasLoaded,
                 isLoading = traktState.isLoading,
@@ -294,7 +300,10 @@ object LibraryRepository {
             return
         }
 
-        val items = itemsById.values.sortedByDescending { it.savedAtEpochMs }
+        val items = ProfileContentFilter.filterLibraryItems(
+            items = itemsById.values.sortedByDescending { it.savedAtEpochMs },
+            activeProfile = activeProfile,
+        )
         val sections = items
             .groupBy { it.type }
             .map { (type, typeItems) ->
