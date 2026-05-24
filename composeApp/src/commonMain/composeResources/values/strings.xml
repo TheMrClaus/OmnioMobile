@@ -1032,6 +1032,11 @@
     <string name="profile_use_primary_addons_description">Share the main profile's addon setup instead of managing a separate list.</string>
     <string name="profile_use_primary_plugins">Use Primary Plugins</string>
     <string name="profile_use_primary_plugins_description">Share the main profile's plugin setup instead of managing a separate list.</string>
+    <string name="profile_copy_keys_title">Copy keys &amp; debrid from Main</string>
+    <string name="profile_copy_keys_subtitle">Reuse Main\'s TMDB / TVDB / RPDB keys and connected debrid services (Real-Debrid, TorBox) for this profile. Catalogs and filters still come from the default templates.</string>
+    <string name="profile_copy_keys_subtitle_kids">Kids profiles always reuse Main\'s API keys and debrid services.</string>
+    <string name="profile_provisioning_failed_title">Source Cloud setup didn\'t finish</string>
+    <string name="profile_provisioning_failed_message">%1$s was created, but Source Cloud provisioning failed: %2$s. You can retry from the profile\'s Source Cloud settings.</string>
     <string name="profile_who_is_watching">Who&apos;s watching?</string>
     <string name="provider_downloaded">Downloaded</string>
     <string name="resume_prompt_action">Resume</string>
