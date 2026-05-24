@@ -308,6 +308,43 @@ internal object SourceCloudRepository {
         }
     }
 
+    /**
+     * One-shot provisioning of an AIOStreams config for a freshly-created
+     * profile. Awaited by [ProfileRepository.createProfile] so we can surface
+     * the result inline rather than mutating singleton UiState.
+     */
+    suspend fun provisionProfile(
+        profileId: Int,
+        isKids: Boolean,
+        copyKeysFromMain: Boolean,
+    ): ProvisionProfileResult {
+        if (!SourceCloudApiClient.baseUrlConfigured) {
+            return ProvisionProfileResult.Failure("Source Cloud is not configured")
+        }
+        val response = runCatching {
+            SourceCloudApiClient.provisionProfile(
+                profileId = profileId,
+                kids = isKids,
+                copyKeysFromMain = copyKeysFromMain,
+            )
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
+            log.w { "Provision profile failed: ${error.message}" }
+        }.getOrNull() ?: return ProvisionProfileResult.Failure("Couldn't reach Source Cloud")
+
+        val config = response.config
+        return if (config?.status == "provisioning_failed") {
+            ProvisionProfileResult.Failure(
+                config.message ?: "Source Cloud provisioning failed",
+            )
+        } else {
+            ProvisionProfileResult.Success(
+                aiostreamsConfigId = response.aiostreamsConfigId,
+                reused = response.reused,
+            )
+        }
+    }
+
     fun clearLocalState() {
         settings = SourceCloudSettings()
         statusCache = null
@@ -486,6 +523,15 @@ internal object SourceCloudRepository {
 
 internal const val SOURCE_CLOUD_ADVANCED_UNAVAILABLE_MESSAGE =
     "Advanced Source Config is unavailable right now."
+
+sealed class ProvisionProfileResult {
+    data class Success(
+        val aiostreamsConfigId: String?,
+        val reused: Boolean,
+    ) : ProvisionProfileResult()
+
+    data class Failure(val message: String) : ProvisionProfileResult()
+}
 
 data class SourceCloudConfigSummary(
     val tmdbApiKey: String = "",

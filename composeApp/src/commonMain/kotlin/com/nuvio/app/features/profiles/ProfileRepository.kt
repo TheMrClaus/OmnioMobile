@@ -22,6 +22,7 @@ import com.nuvio.app.features.search.SearchHistoryRepository
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.trakt.TraktAuthRepository
 import com.nuvio.app.features.emby.EmbyAuthRepository
+import com.nuvio.app.features.sourcecloud.ProvisionProfileResult
 import com.nuvio.app.features.sourcecloud.SourceCloudRepository
 import com.nuvio.app.features.streams.prefs.StreamPreferencesRepository
 import com.nuvio.app.features.tmdb.TmdbSettingsRepository
@@ -227,9 +228,11 @@ object ProfileRepository {
         maxAgeRating: String? = null,
         usesPrimaryAddons: Boolean = false,
         usesPrimaryPlugins: Boolean = false,
-    ) {
+        copyKeysFromMain: Boolean = true,
+    ): ProvisionMessage? {
         val existing = _state.value.profiles
-        val nextIndex = ((1..4).toSet() - existing.map { it.profileIndex }.toSet()).minOrNull() ?: return
+        val nextIndex = ((1..4).toSet() - existing.map { it.profileIndex }.toSet()).minOrNull()
+            ?: return null
 
         val allPayloads = existing.map { profile ->
             ProfilePushPayload(
@@ -254,6 +257,30 @@ object ProfileRepository {
         )
 
         pushProfiles(allPayloads)
+
+        // Skip provisioning for anonymous users — there's no Supabase session
+        // to authenticate the edge function call. The profile is still
+        // available locally; provisioning will run on a later authenticated
+        // session if/when the user signs in (handled by retry UX, not here).
+        if (AuthRepository.state.value.isAnonymous) return null
+
+        // Mirror OmnioTV + panel behaviour: kids profiles always inherit
+        // Main's keys + connected debrid services regardless of the toggle.
+        // The edge function enforces the same rule server-side; mirroring it
+        // here makes the local UX intent unambiguous.
+        val effectiveCopyKeys = isKids || copyKeysFromMain
+
+        return when (val result = SourceCloudRepository.provisionProfile(
+            profileId = nextIndex,
+            isKids = isKids,
+            copyKeysFromMain = effectiveCopyKeys,
+        )) {
+            is ProvisionProfileResult.Success -> null
+            is ProvisionProfileResult.Failure -> ProvisionMessage.Failure(
+                profileName = name,
+                reason = result.message,
+            )
+        }
     }
 
     suspend fun updateProfile(
@@ -559,3 +586,7 @@ data class ProfileLockState(
     @kotlinx.serialization.SerialName("pin_enabled") val pinEnabled: Boolean = false,
     @kotlinx.serialization.SerialName("pin_locked_until") val pinLockedUntil: String? = null,
 )
+
+sealed class ProvisionMessage {
+    data class Failure(val profileName: String, val reason: String) : ProvisionMessage()
+}

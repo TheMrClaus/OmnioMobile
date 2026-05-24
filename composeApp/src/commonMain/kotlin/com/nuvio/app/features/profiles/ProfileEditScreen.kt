@@ -91,7 +91,12 @@ fun ProfileEditScreen(
     }
     var usesPrimaryAddons by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryAddons ?: false) }
     var usesPrimaryPlugins by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryPlugins ?: false) }
+    // Affects the first-provision Source Cloud call only; ignored after that
+    // and never re-applied on profile edits. Matches the TV/panel default
+    // (ON for non-kids; kids force it server-side regardless).
+    var copyKeysFromMain by rememberSaveable { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
+    var provisionFailure by remember { mutableStateOf<ProvisionMessage.Failure?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showPinSetup by remember { mutableStateOf(false) }
     var showPinClear by remember { mutableStateOf(false) }
@@ -240,6 +245,43 @@ fun ProfileEditScreen(
             }
         }
 
+        if (isNew) {
+            item {
+                NuvioSurfaceCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.profile_copy_keys_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = if (isKids) {
+                                        stringResource(Res.string.profile_copy_keys_subtitle_kids)
+                                    } else {
+                                        stringResource(Res.string.profile_copy_keys_subtitle)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Switch(
+                                checked = isKids || copyKeysFromMain,
+                                onCheckedChange = { if (!isKids) copyKeysFromMain = it },
+                                enabled = !isKids,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item {
             Spacer(modifier = Modifier.height(8.dp))
             NuvioPrimaryButton(
@@ -256,7 +298,7 @@ fun ProfileEditScreen(
                     scope.launch {
                         val avatarColorHex = selectedAvatarItem?.bgColor ?: fallbackColorHex
                         if (isNew) {
-                            ProfileRepository.createProfile(
+                            val message = ProfileRepository.createProfile(
                                 name = name,
                                 avatarColorHex = avatarColorHex,
                                 avatarId = selectedAvatarId,
@@ -264,7 +306,18 @@ fun ProfileEditScreen(
                                 maxAgeRating = maxAgeRating,
                                 usesPrimaryAddons = usesPrimaryAddons,
                                 usesPrimaryPlugins = usesPrimaryPlugins,
+                                copyKeysFromMain = copyKeysFromMain,
                             )
+                            isSaving = false
+                            // Don't navigate away on partial failure — keep the
+                            // screen visible so the user can read the modal
+                            // and decide whether to retry from Source Cloud
+                            // settings later. Profile row was still saved.
+                            if (message is ProvisionMessage.Failure) {
+                                provisionFailure = message
+                            } else {
+                                onSaved()
+                            }
                         } else {
                             ProfileRepository.updateProfile(
                                 profileIndex = currentProfile!!.profileIndex,
@@ -276,9 +329,9 @@ fun ProfileEditScreen(
                                 usesPrimaryAddons = usesPrimaryAddons,
                                 usesPrimaryPlugins = usesPrimaryPlugins,
                             )
+                            isSaving = false
+                            onSaved()
                         }
-                        isSaving = false
-                        onSaved()
                     }
                 },
             )
@@ -352,6 +405,27 @@ fun ProfileEditScreen(
             },
             onDismiss = {
                 showPinClear = false
+            },
+        )
+    }
+
+    provisionFailure?.let { failure ->
+        NuvioStatusModal(
+            title = stringResource(Res.string.profile_provisioning_failed_title),
+            message = stringResource(
+                Res.string.profile_provisioning_failed_message,
+                failure.profileName,
+                failure.reason,
+            ),
+            isVisible = true,
+            confirmText = stringResource(Res.string.action_ok),
+            onConfirm = {
+                provisionFailure = null
+                onSaved()
+            },
+            onDismiss = {
+                provisionFailure = null
+                onSaved()
             },
         )
     }

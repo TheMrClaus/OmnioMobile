@@ -37,6 +37,20 @@ internal data class SourceCloudConfigSummaryRequestDto(
 )
 
 @Serializable
+internal data class SourceCloudProvisionProfileRequestDto(
+    val profileId: Int,
+    val kids: Boolean,
+    val copyKeysFromMain: Boolean,
+)
+
+@Serializable
+internal data class SourceCloudProvisionProfileResponseDto(
+    val config: SourceCloudConfigStateDto? = null,
+    val aiostreamsConfigId: String? = null,
+    val reused: Boolean = false,
+)
+
+@Serializable
 internal data class SourceCloudConfigSummaryResponseDto(
     val tmdbApiKey: String? = null,
     val tmdbAccessToken: String? = null,

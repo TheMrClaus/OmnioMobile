@@ -94,6 +94,32 @@ internal object SourceCloudApiClient {
         return decodeOrNull(response)
     }
 
+    /**
+     * Mint a fresh per-profile AIOStreams config server-side. Idempotent: the
+     * edge function returns the existing config with `reused: true` if one is
+     * already linked to the given profile. Kids profiles receive a bundled
+     * kid-safe template; non-kids fall back to AIOStreams' debrid-starter.
+     * When `copyKeysFromMain` is true (always for kids, opt-in otherwise) the
+     * server also inherits Main's TMDB / TVDB / RPDB keys plus any connected
+     * debrid service credentials so the new profile is functional immediately.
+     */
+    suspend fun provisionProfile(
+        profileId: Int,
+        kids: Boolean,
+        copyKeysFromMain: Boolean,
+    ): SourceCloudProvisionProfileResponseDto? {
+        val body = json.encodeToString(
+            SourceCloudProvisionProfileRequestDto(
+                profileId = profileId,
+                kids = kids,
+                copyKeysFromMain = copyKeysFromMain,
+            ),
+        )
+        val response = request(method = "POST", function = "source-cloud-provision-profile", body = body)
+            ?: return null
+        return decodeOrNull(response)
+    }
+
     suspend fun getConfigSummary(profileId: Int): SourceCloudConfigSummaryResponseDto? {
         val body = json.encodeToString(SourceCloudConfigSummaryRequestDto(profileId))
         val response = request(method = "POST", function = "source-cloud-get-config-summary", body = body)
